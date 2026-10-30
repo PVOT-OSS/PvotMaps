@@ -16,6 +16,7 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
 import org.prauga.maps.core.model.MapCamera
 
 @Composable
@@ -25,12 +26,16 @@ fun MapSurface(
 ) {
     val context = LocalContext.current
     val mapView = remember { createMapView(context) }
-    val styleUri = if (isSystemInDarkTheme()) MapStyles.DARK else MapStyles.LIGHT
+    val dark = isSystemInDarkTheme()
+    val styleUri = if (dark) MapStyles.DARK else MapStyles.LIGHT
 
     MapViewLifecycle(mapView)
 
     LaunchedEffect(mapView, styleUri) {
-        mapView.getMapAsync { map -> map.setStyle(styleUri) }
+        val style = runCatching { fetchGlobeStyle(styleUri, dark) }
+            .map { Style.Builder().fromJson(it) }
+            .getOrElse { Style.Builder().fromUri(styleUri) }
+        mapView.getMapAsync { map -> map.setStyle(style) }
     }
     LaunchedEffect(mapView, camera) {
         mapView.getMapAsync { map -> map.cameraPosition = camera.toCameraPosition() }
