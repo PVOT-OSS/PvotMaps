@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URL
+import java.util.concurrent.ConcurrentHashMap
 
 private const val ReliefSource = "ne2_shaded"
 private const val ReliefLayer = "earth_relief"
@@ -15,10 +16,13 @@ private const val RoadNameSpacing = 0.12
 private const val EarthFadeStart = 5
 private const val EarthFadeEnd = 8
 
+// Downloaded once per process; switching theme or mode only re-applies our changes.
+private val downloadedStyles = ConcurrentHashMap<String, String>()
+
 // The globe is switched on only through the style JSON; MapLibre has no runtime projection API.
 internal suspend fun fetchMapStyle(styleUri: String, palette: MapPalette, dark: Boolean): String =
     withContext(Dispatchers.IO) {
-        val style = JSONObject(URL(styleUri).openStream().bufferedReader().use { it.readText() })
+        val style = JSONObject(downloadedStyles.getOrPut(styleUri) { URL(styleUri).readText() })
         style.put("projection", JSONObject().put("type", "globe"))
         var layers = style.getJSONArray("layers").withPalette(palette).withSpacedRoadNames()
         if (style.getJSONObject("sources").has(ReliefSource)) layers = layers.withEarth(dark)
