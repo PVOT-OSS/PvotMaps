@@ -12,5 +12,6 @@
     <string name="map_modes">Map modes</string>
     <string name="map_mode_explore">Explore</string>
     <string name="map_mode_driving">Driving</string>
+    <string name="map_labels">Labels</string>
     <string name="map_my_location">My location</string>
 </resources>

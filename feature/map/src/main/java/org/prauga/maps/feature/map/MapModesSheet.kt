@@ -11,11 +11,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,6 +41,8 @@ internal fun MapModesSheet(
     visible: Boolean,
     mode: MapMode,
     onModeChange: (MapMode) -> Unit,
+    labels: Boolean,
+    onLabelsChange: (Boolean) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
     PvotBottomSheet(
@@ -54,6 +59,25 @@ internal fun MapModesSheet(
                     modifier = Modifier.weight(1f),
                 )
             }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = PvotSpacing.L)
+                .clip(CardShape)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = CardFillAlpha))
+                .toggleable(value = labels, role = Role.Switch, onValueChange = onLabelsChange)
+                .padding(horizontal = PvotSpacing.L, vertical = PvotSpacing.M),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.map_labels),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            // PvotLib has no switch yet; Material's takes its colours from PvotAppTheme.
+            Switch(checked = labels, onCheckedChange = null)
         }
     }
 }

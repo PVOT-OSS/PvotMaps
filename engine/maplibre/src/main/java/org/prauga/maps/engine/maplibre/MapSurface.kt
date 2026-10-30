@@ -36,6 +36,7 @@ fun MapSurface(
     modifier: Modifier = Modifier,
     userPosition: UserPosition? = null,
     mode: MapMode = MapMode.Explore,
+    labels: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val context = LocalContext.current
@@ -61,6 +62,9 @@ fun MapSurface(
                 style = loaded
             }
         }
+    }
+    LaunchedEffect(style, labels) {
+        style?.takeIf { it.isFullyLoaded }?.showLabels(labels)
     }
     LaunchedEffect(style, userPosition) {
         style?.takeIf { it.isFullyLoaded }?.setUserPosition(userPosition)

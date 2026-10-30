@@ -71,6 +71,7 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
     var searching by rememberSaveable { mutableStateOf(false) }
     var choosingMode by rememberSaveable { mutableStateOf(false) }
     var mapMode by rememberSaveable { mutableStateOf(MapMode.Explore) }
+    var labels by rememberSaveable { mutableStateOf(true) }
     val obstructed = if (searchBarTop.isNaN()) 0f else (height - searchBarTop).coerceAtLeast(0f)
     Box(
         Modifier
@@ -81,6 +82,7 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
             state = mapState,
             userPosition = userPosition,
             mode = mapMode,
+            labels = labels,
             modifier = Modifier
                 .fillMaxSize()
                 .pvotGlassBackdrop(backdrop),
@@ -103,6 +105,8 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
         visible = choosingMode,
         mode = mapMode,
         onModeChange = { mapMode = it },
+        labels = labels,
+        onLabelsChange = { labels = it },
         onDismissRequest = { choosingMode = false },
     )
 }

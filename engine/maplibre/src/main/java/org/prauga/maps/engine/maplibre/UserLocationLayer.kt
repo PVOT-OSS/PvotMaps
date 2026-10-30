@@ -70,6 +70,14 @@ internal fun Style.setUserPosition(position: UserPosition?) {
     source.setGeoJson(feature)
 }
 
+/** Shows or hides every label and place icon in the style, but never the user's dot. */
+internal fun Style.showLabels(visible: Boolean) {
+    val visibility = PropertyFactory.visibility(if (visible) Property.VISIBLE else Property.NONE)
+    layers.filterIsInstance<SymbolLayer>()
+        .filterNot { it.id == DotLayer || it.id == ConeLayer }
+        .forEach { it.setProperties(visibility) }
+}
+
 private fun dotBitmap(density: Float): Bitmap {
     val size = ((RingRadius + ShadowRadius) * 2 * density).toInt()
     val center = size / 2f
