@@ -10,7 +10,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         pluginManager.apply("com.android.application")
         extensions.configure<ApplicationExtension> {
             compileSdk {
-                version = release(Sdk.COMPILE)
+                version = release(Sdk.COMPILE) { minorApiLevel = Sdk.COMPILE_MINOR }
             }
             defaultConfig {
                 minSdk = Sdk.MIN
@@ -18,8 +18,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
             }
             compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_11
-                targetCompatibility = JavaVersion.VERSION_11
+                sourceCompatibility = JavaVersion.VERSION_21
+                targetCompatibility = JavaVersion.VERSION_21
             }
         }
         dependencies {

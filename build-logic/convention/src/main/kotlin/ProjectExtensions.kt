@@ -7,6 +7,7 @@ import org.gradle.kotlin.dsl.getByType
 
 internal object Sdk {
     const val COMPILE = 37
+    const val COMPILE_MINOR = 1
     const val TARGET = 37
     const val MIN = 29
 }
