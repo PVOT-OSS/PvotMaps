@@ -1,6 +1,7 @@
 plugins {
     id("maps.android.library")
     id("maps.android.compose")
+    id("maps.hilt")
 }
 
 android {
@@ -8,6 +9,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:location"))
+    implementation(project(":engine:maplibre"))
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)

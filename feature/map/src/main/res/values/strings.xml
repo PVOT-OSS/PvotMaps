@@ -3,4 +3,7 @@
     <string name="location_permission_body">Maps needs your location to show the map around you.</string>
     <string name="location_permission_allow">Allow location</string>
     <string name="location_permission_settings">Open settings</string>
+    <string name="location_unavailable_title">Can’t find your location</string>
+    <string name="location_unavailable_body">Turn on location services and try again.</string>
+    <string name="location_unavailable_retry">Try again</string>
 </resources>
