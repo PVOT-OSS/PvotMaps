@@ -25,4 +25,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "Pvot Maps"
 include(":app")
+include(":core:model")
+include(":engine:maplibre")
  
