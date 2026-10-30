@@ -29,4 +29,8 @@ include(":core:location")
 include(":core:model")
 include(":engine:maplibre")
 include(":feature:map")
+
+// PvotLib builds from the submodule with its own build-logic and version catalog;
+// com.prauga.pvot:design-system resolves to its :design-system project.
+includeBuild("PvotLib")
  
