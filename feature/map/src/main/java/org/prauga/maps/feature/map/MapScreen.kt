@@ -61,6 +61,8 @@ internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
     }
 }
 
+private const val TiltDegrees = 60.0
+
 @Composable
 private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?) {
     val mapState = rememberMapState(initialCamera)
@@ -72,6 +74,7 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
     var choosingMode by rememberSaveable { mutableStateOf(false) }
     var mapMode by rememberSaveable { mutableStateOf(MapMode.Explore) }
     var labels by rememberSaveable { mutableStateOf(true) }
+    var tilted by rememberSaveable { mutableStateOf(false) }
     val obstructed = if (searchBarTop.isNaN()) 0f else (height - searchBarTop).coerceAtLeast(0f)
     Box(
         Modifier
@@ -92,6 +95,11 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
             backdrop = backdrop,
             onSearch = { searching = true },
             onMapModes = { choosingMode = true },
+            tilted = tilted,
+            onTilt = {
+                tilted = !tilted
+                mapState.animateTilt(if (tilted) TiltDegrees else 0.0)
+            },
             onMyLocation = {
                 val target = userPosition?.coordinates ?: return@MapOverlay
                 mapState.animateTo(MapCamera(target, maxOf(mapState.camera.zoom, StreetZoom)))

@@ -14,4 +14,8 @@
     <string name="map_mode_driving">Driving</string>
     <string name="map_labels">Labels</string>
     <string name="map_my_location">My location</string>
+    <string name="map_tilted">Show in 3D</string>
+    <string name="map_flat">Show flat</string>
+    <string name="map_tilted_short">3D</string>
+    <string name="map_flat_short">2D</string>
 </resources>

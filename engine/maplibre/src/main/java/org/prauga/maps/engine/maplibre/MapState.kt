@@ -31,6 +31,13 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
         map.animateCamera(CameraUpdateFactory.newCameraPosition(camera.toCameraPosition()), AnimationMillis)
     }
 
+    /** Tilts the map to [degrees] from straight down, keeping where it looks. */
+    fun animateTilt(degrees: Double) {
+        val map = map ?: return
+        val position = CameraPosition.Builder(map.cameraPosition).tilt(degrees).build()
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(position), AnimationMillis)
+    }
+
     internal fun attach(map: MapLibreMap) {
         this.map = map
         map.cameraPosition = savedCamera.toCameraPosition()

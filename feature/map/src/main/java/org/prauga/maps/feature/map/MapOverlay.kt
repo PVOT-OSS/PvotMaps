@@ -24,6 +24,9 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.prauga.pvot.designsystem.components.PvotGlassCard
 import com.prauga.pvot.designsystem.components.PvotGlassIconButtonDefaults
 import com.prauga.pvot.designsystem.effects.PvotGlassBackdrop
@@ -36,6 +39,8 @@ internal fun MapOverlay(
     backdrop: PvotGlassBackdrop,
     onSearch: () -> Unit,
     onMapModes: () -> Unit,
+    tilted: Boolean,
+    onTilt: () -> Unit,
     onMyLocation: () -> Unit,
     onSearchBarTop: (Float) -> Unit,
     modifier: Modifier = Modifier,
@@ -47,7 +52,13 @@ internal fun MapOverlay(
         verticalArrangement = Arrangement.spacedBy(PvotSpacing.M),
         horizontalAlignment = Alignment.End,
     ) {
-        MapToolbar(backdrop = backdrop, onMapModes = onMapModes, onMyLocation = onMyLocation)
+        MapToolbar(
+            backdrop = backdrop,
+            onMapModes = onMapModes,
+            tilted = tilted,
+            onTilt = onTilt,
+            onMyLocation = onMyLocation,
+        )
         MapSearchBar(
             backdrop = backdrop,
             onClick = onSearch,
@@ -63,6 +74,8 @@ internal fun MapOverlay(
 private fun MapToolbar(
     backdrop: PvotGlassBackdrop,
     onMapModes: () -> Unit,
+    tilted: Boolean,
+    onTilt: () -> Unit,
     onMyLocation: () -> Unit,
 ) {
     PvotGlassCard(
@@ -70,38 +83,49 @@ private fun MapToolbar(
         cornerRadius = PvotGlassDefaults.CapsuleRadius,
         contentPadding = PaddingValues(vertical = PvotSpacing.XS),
     ) {
-        ToolbarButton(
-            icon = R.drawable.ic_map,
-            contentDescription = stringResource(R.string.map_modes),
-            onClick = onMapModes,
-        )
-        ToolbarButton(
-            icon = R.drawable.ic_location,
-            contentDescription = stringResource(R.string.map_my_location),
-            onClick = onMyLocation,
-        )
+        ToolbarButton(onClick = onMapModes) {
+            ToolbarIcon(R.drawable.ic_map, stringResource(R.string.map_modes))
+        }
+        // Shows what a tap switches to, so it reads 3D while the map is flat.
+        val tiltLabel = stringResource(if (tilted) R.string.map_flat else R.string.map_tilted)
+        ToolbarButton(onClick = onTilt, modifier = Modifier.semantics { contentDescription = tiltLabel }) {
+            Text(
+                text = stringResource(if (tilted) R.string.map_flat_short else R.string.map_tilted_short),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        }
+        ToolbarButton(onClick = onMyLocation) {
+            ToolbarIcon(R.drawable.ic_location, stringResource(R.string.map_my_location))
+        }
     }
 }
 
 @Composable
 private fun ToolbarButton(
-    @DrawableRes icon: Int,
-    contentDescription: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(PvotGlassIconButtonDefaults.Size)
             .clip(CircleShape)
             .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurface,
-        )
+        content()
     }
+}
+
+@Composable
+private fun ToolbarIcon(@DrawableRes icon: Int, contentDescription: String) {
+    Icon(
+        painter = painterResource(icon),
+        contentDescription = contentDescription,
+        tint = MaterialTheme.colorScheme.onSurface,
+    )
 }
 
 @Composable
