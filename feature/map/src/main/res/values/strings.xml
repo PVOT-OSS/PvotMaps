@@ -9,6 +9,8 @@
     <string name="map_search_hint">Search Maps</string>
     <string name="map_search_clear">Clear search</string>
     <string name="map_search_not_ready">Finding places isn’t ready yet. When it is, search will run on your phone, so what you type stays with you.</string>
-    <string name="map_layers">Map layers</string>
+    <string name="map_modes">Map modes</string>
+    <string name="map_mode_explore">Explore</string>
+    <string name="map_mode_driving">Driving</string>
     <string name="map_my_location">My location</string>
 </resources>

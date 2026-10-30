@@ -35,7 +35,7 @@ import com.prauga.pvot.designsystem.theme.PvotSpacing
 internal fun MapOverlay(
     backdrop: PvotGlassBackdrop,
     onSearch: () -> Unit,
-    onLayers: () -> Unit,
+    onMapModes: () -> Unit,
     onMyLocation: () -> Unit,
     onSearchBarTop: (Float) -> Unit,
     modifier: Modifier = Modifier,
@@ -47,7 +47,7 @@ internal fun MapOverlay(
         verticalArrangement = Arrangement.spacedBy(PvotSpacing.M),
         horizontalAlignment = Alignment.End,
     ) {
-        MapToolbar(backdrop = backdrop, onLayers = onLayers, onMyLocation = onMyLocation)
+        MapToolbar(backdrop = backdrop, onMapModes = onMapModes, onMyLocation = onMyLocation)
         MapSearchBar(
             backdrop = backdrop,
             onClick = onSearch,
@@ -62,7 +62,7 @@ internal fun MapOverlay(
 @Composable
 private fun MapToolbar(
     backdrop: PvotGlassBackdrop,
-    onLayers: () -> Unit,
+    onMapModes: () -> Unit,
     onMyLocation: () -> Unit,
 ) {
     PvotGlassCard(
@@ -71,9 +71,9 @@ private fun MapToolbar(
         contentPadding = PaddingValues(vertical = PvotSpacing.XS),
     ) {
         ToolbarButton(
-            icon = R.drawable.ic_layers,
-            contentDescription = stringResource(R.string.map_layers),
-            onClick = onLayers,
+            icon = R.drawable.ic_map,
+            contentDescription = stringResource(R.string.map_modes),
+            onClick = onMapModes,
         )
         ToolbarButton(
             icon = R.drawable.ic_location,

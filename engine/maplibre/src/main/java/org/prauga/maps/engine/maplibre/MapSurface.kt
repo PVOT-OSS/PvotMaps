@@ -35,6 +35,7 @@ fun MapSurface(
     state: MapState,
     modifier: Modifier = Modifier,
     userPosition: UserPosition? = null,
+    mode: MapMode = MapMode.Explore,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val context = LocalContext.current
@@ -49,9 +50,9 @@ fun MapSurface(
         mapView.getMapAsync(state::attach)
         onDispose { state.detach() }
     }
-    LaunchedEffect(mapView, dark) {
+    LaunchedEffect(mapView, dark, mode) {
         val palette = if (dark) MapPalette.Dark else MapPalette.Light
-        val builder = runCatching { fetchMapStyle(MapStyles.BASE, palette, dark) }
+        val builder = runCatching { fetchMapStyle(MapStyles.BASE, palette, dark, mode) }
             .map { Style.Builder().fromJson(it) }
             .getOrElse { Style.Builder().fromUri(MapStyles.BASE) }
         mapView.getMapAsync { map ->

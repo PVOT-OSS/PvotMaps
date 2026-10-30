@@ -34,6 +34,7 @@ import com.prauga.pvot.designsystem.effects.pvotGlassBackdrop
 import com.prauga.pvot.designsystem.effects.rememberPvotGlassBackdrop
 import org.prauga.maps.core.model.MapCamera
 import org.prauga.maps.core.model.UserPosition
+import org.prauga.maps.engine.maplibre.MapMode
 import org.prauga.maps.engine.maplibre.MapSurface
 import org.prauga.maps.engine.maplibre.rememberMapState
 
@@ -68,6 +69,8 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
     var height by remember { mutableIntStateOf(0) }
     var searchBarTop by remember { mutableFloatStateOf(Float.NaN) }
     var searching by rememberSaveable { mutableStateOf(false) }
+    var choosingMode by rememberSaveable { mutableStateOf(false) }
+    var mapMode by rememberSaveable { mutableStateOf(MapMode.Explore) }
     val obstructed = if (searchBarTop.isNaN()) 0f else (height - searchBarTop).coerceAtLeast(0f)
     Box(
         Modifier
@@ -77,16 +80,16 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
         MapSurface(
             state = mapState,
             userPosition = userPosition,
+            mode = mapMode,
             modifier = Modifier
                 .fillMaxSize()
                 .pvotGlassBackdrop(backdrop),
             contentPadding = PaddingValues(bottom = with(density) { obstructed.toDp() }),
         )
-        // Layers is still a stub.
         MapOverlay(
             backdrop = backdrop,
             onSearch = { searching = true },
-            onLayers = {},
+            onMapModes = { choosingMode = true },
             onMyLocation = {
                 val target = userPosition?.coordinates ?: return@MapOverlay
                 mapState.animateTo(MapCamera(target, maxOf(mapState.camera.zoom, StreetZoom)))
@@ -96,6 +99,12 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
         )
     }
     MapSearchSheet(visible = searching, onDismissRequest = { searching = false })
+    MapModesSheet(
+        visible = choosingMode,
+        mode = mapMode,
+        onModeChange = { mapMode = it },
+        onDismissRequest = { choosingMode = false },
+    )
 }
 
 @Composable

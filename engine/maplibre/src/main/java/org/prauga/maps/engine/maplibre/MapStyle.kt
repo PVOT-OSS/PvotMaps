@@ -20,11 +20,12 @@ private const val EarthFadeEnd = 8
 private val downloadedStyles = ConcurrentHashMap<String, String>()
 
 // The globe is switched on only through the style JSON; MapLibre has no runtime projection API.
-internal suspend fun fetchMapStyle(styleUri: String, palette: MapPalette, dark: Boolean): String =
+internal suspend fun fetchMapStyle(styleUri: String, palette: MapPalette, dark: Boolean, mode: MapMode): String =
     withContext(Dispatchers.IO) {
         val style = JSONObject(downloadedStyles.getOrPut(styleUri) { URL(styleUri).readText() })
         style.put("projection", JSONObject().put("type", "globe"))
         var layers = style.getJSONArray("layers").withPalette(palette).withSpacedRoadNames()
+        if (mode == MapMode.Driving) layers = layers.forDriving()
         if (style.getJSONObject("sources").has(ReliefSource)) layers = layers.withEarth(dark)
         style.put("layers", layers)
         style.toString()
@@ -60,6 +61,23 @@ private fun JSONArray.withSpacedRoadNames(): JSONArray {
     return this
 }
 
+private fun JSONArray.forDriving(): JSONArray {
+    for (i in 0 until length()) {
+        val layer = getJSONObject(i)
+        when {
+            layer.getString("id") == "building-3d" -> layer.layout().put("visibility", "none")
+            layer.optString("source-layer") == "poi" -> layer.put(
+                "filter",
+                JSONArray().put("all").put(layer.get("filter")).put(
+                    JSONArray().put("match").put(JSONArray().put("get").put("class"))
+                        .put(JSONArray().put("fuel").put("parking")).put(true).put(false),
+                ),
+            )
+        }
+    }
+    return this
+}
+
 private fun reliefLayer(dark: Boolean) = JSONObject()
     .put("id", ReliefLayer)
     .put("type", "raster")
@@ -78,6 +96,9 @@ private fun JSONObject.fadeWaterFromOcean() {
     val color = paint.opt("fill-color") as? String ?: return
     paint.put("fill-color", earthRamp(Ocean, color))
 }
+
+private fun JSONObject.layout(): JSONObject =
+    optJSONObject("layout") ?: JSONObject().also { put("layout", it) }
 
 private fun JSONObject.paint(): JSONObject =
     optJSONObject("paint") ?: JSONObject().also { put("paint", it) }
