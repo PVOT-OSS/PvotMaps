@@ -9,6 +9,7 @@ import java.net.URL
 private const val ReliefSource = "ne2_shaded"
 private const val ReliefLayer = "earth_relief"
 private const val Ocean = "#163a70"
+private const val RoadNameSpacing = 0.12
 
 // Below EarthFadeEnd the map reads as a planet: Natural Earth relief for land, deep blue oceans.
 private const val EarthFadeStart = 5
@@ -19,7 +20,7 @@ internal suspend fun fetchMapStyle(styleUri: String, palette: MapPalette, dark: 
     withContext(Dispatchers.IO) {
         val style = JSONObject(URL(styleUri).openStream().bufferedReader().use { it.readText() })
         style.put("projection", JSONObject().put("type", "globe"))
-        var layers = style.getJSONArray("layers").withPalette(palette)
+        var layers = style.getJSONArray("layers").withPalette(palette).withSpacedRoadNames()
         if (style.getJSONObject("sources").has(ReliefSource)) layers = layers.withEarth(dark)
         style.put("layers", layers)
         style.toString()
@@ -38,6 +39,21 @@ private fun JSONArray.withEarth(dark: Boolean): JSONArray {
         if (layer.getString("type") == "background") layers.put(reliefLayer(dark))
     }
     return layers
+}
+
+// Street names in small, letter-spaced capitals, set upright rather than italic.
+private fun JSONArray.withSpacedRoadNames(): JSONArray {
+    for (i in 0 until length()) {
+        val layer = getJSONObject(i)
+        // Shields carry road numbers on an icon; leave them be.
+        if (!layer.getString("id").startsWith("highway-name")) continue
+        val layout = layer.optJSONObject("layout") ?: continue
+        layout.put("text-transform", "uppercase")
+        layout.put("text-letter-spacing", RoadNameSpacing)
+        layout.put("text-font", JSONArray().put("Noto Sans Regular"))
+        layout.put("text-size", zoomRamp(13, 10, 18, 13))
+    }
+    return this
 }
 
 private fun reliefLayer(dark: Boolean) = JSONObject()
