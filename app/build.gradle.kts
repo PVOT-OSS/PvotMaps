@@ -1,6 +1,7 @@
 plugins {
     id("maps.android.application")
     id("maps.android.compose")
+    id("maps.hilt")
 }
 
 android {

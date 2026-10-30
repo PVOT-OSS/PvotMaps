@@ -23,5 +23,9 @@ gradlePlugin {
             id = "maps.android.compose"
             implementationClass = "AndroidComposeConventionPlugin"
         }
+        register("hilt") {
+            id = "maps.hilt"
+            implementationClass = "HiltConventionPlugin"
+        }
     }
 }
