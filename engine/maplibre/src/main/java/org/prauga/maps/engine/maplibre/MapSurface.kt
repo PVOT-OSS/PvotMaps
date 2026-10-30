@@ -35,14 +35,14 @@ fun MapSurface(
     val density = LocalDensity.current
     val mapView = remember { createMapView(context) }
     val dark = isSystemInDarkTheme()
-    val styleUri = if (dark) MapStyles.DARK else MapStyles.LIGHT
 
     MapViewLifecycle(mapView)
 
-    LaunchedEffect(mapView, styleUri) {
-        val style = runCatching { fetchGlobeStyle(styleUri, dark) }
+    LaunchedEffect(mapView, dark) {
+        val palette = if (dark) MapPalette.Dark else MapPalette.Light
+        val style = runCatching { fetchMapStyle(MapStyles.BASE, palette, dark) }
             .map { Style.Builder().fromJson(it) }
-            .getOrElse { Style.Builder().fromUri(styleUri) }
+            .getOrElse { Style.Builder().fromUri(MapStyles.BASE) }
         mapView.getMapAsync { map -> map.setStyle(style) }
     }
     // Keeps the logo and the OpenStreetMap attribution clear of whatever is drawn over the map.

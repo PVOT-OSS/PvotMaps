@@ -1,7 +1,7 @@
 package org.prauga.maps.engine.maplibre
 
-// OpenFreeMap: OpenStreetMap data in the OpenMapTiles schema, no key. Online only for now.
+// OpenFreeMap's Liberty layers (OpenStreetMap data, OpenMapTiles schema, no key), recoloured with
+// MapPalette for both themes. Online only for now.
 internal object MapStyles {
-    const val LIGHT = "https://tiles.openfreemap.org/styles/liberty"
-    const val DARK = "https://tiles.openfreemap.org/styles/dark"
+    const val BASE = "https://tiles.openfreemap.org/styles/liberty"
 }
