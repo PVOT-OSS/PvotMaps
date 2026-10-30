@@ -6,4 +6,7 @@
     <string name="location_unavailable_title">Can’t find your location</string>
     <string name="location_unavailable_body">Turn on location services and try again.</string>
     <string name="location_unavailable_retry">Try again</string>
+    <string name="map_search_hint">Search Maps</string>
+    <string name="map_layers">Map layers</string>
+    <string name="map_my_location">My location</string>
 </resources>
