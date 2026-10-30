@@ -17,7 +17,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +67,7 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
     val density = LocalDensity.current
     var height by remember { mutableIntStateOf(0) }
     var searchBarTop by remember { mutableFloatStateOf(Float.NaN) }
+    var searching by rememberSaveable { mutableStateOf(false) }
     val obstructed = if (searchBarTop.isNaN()) 0f else (height - searchBarTop).coerceAtLeast(0f)
     Box(
         Modifier
@@ -79,10 +82,10 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
                 .pvotGlassBackdrop(backdrop),
             contentPadding = PaddingValues(bottom = with(density) { obstructed.toDp() }),
         )
-        // Search and layers are still stubs.
+        // Layers is still a stub.
         MapOverlay(
             backdrop = backdrop,
-            onSearch = {},
+            onSearch = { searching = true },
             onLayers = {},
             onMyLocation = {
                 val target = userPosition?.coordinates ?: return@MapOverlay
@@ -92,6 +95,7 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
+    MapSearchSheet(visible = searching, onDismissRequest = { searching = false })
 }
 
 @Composable
