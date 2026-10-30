@@ -31,7 +31,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.prauga.pvot.designsystem.effects.pvotGlassBackdrop
 import com.prauga.pvot.designsystem.effects.rememberPvotGlassBackdrop
 import org.prauga.maps.core.model.MapCamera
+import org.prauga.maps.core.model.UserPosition
 import org.prauga.maps.engine.maplibre.MapSurface
+import org.prauga.maps.engine.maplibre.rememberMapState
 
 @Composable
 internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
@@ -40,7 +42,10 @@ internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
     LaunchedEffect(viewModel) { viewModel.locate() }
 
     when (val state = uiState) {
-        is MapUiState.Ready -> MapWithOverlay(state.camera)
+        is MapUiState.Ready -> {
+            val userPosition by viewModel.userPosition.collectAsStateWithLifecycle()
+            MapWithOverlay(state.camera, userPosition)
+        }
         MapUiState.Locating -> Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -54,7 +59,8 @@ internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun MapWithOverlay(camera: MapCamera) {
+private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?) {
+    val mapState = rememberMapState(initialCamera)
     val backdrop = rememberPvotGlassBackdrop()
     val density = LocalDensity.current
     var height by remember { mutableIntStateOf(0) }
@@ -66,18 +72,22 @@ private fun MapWithOverlay(camera: MapCamera) {
             .onSizeChanged { height = it.height },
     ) {
         MapSurface(
-            camera = camera,
+            state = mapState,
+            userPosition = userPosition,
             modifier = Modifier
                 .fillMaxSize()
                 .pvotGlassBackdrop(backdrop),
             contentPadding = PaddingValues(bottom = with(density) { obstructed.toDp() }),
         )
-        // Search, layers and my location are stubs for now.
+        // Search and layers are still stubs.
         MapOverlay(
             backdrop = backdrop,
             onSearch = {},
             onLayers = {},
-            onMyLocation = {},
+            onMyLocation = {
+                val target = userPosition?.coordinates ?: return@MapOverlay
+                mapState.animateTo(MapCamera(target, maxOf(mapState.camera.zoom, StreetZoom)))
+            },
             onSearchBarTop = { searchBarTop = it },
             modifier = Modifier.align(Alignment.BottomCenter),
         )

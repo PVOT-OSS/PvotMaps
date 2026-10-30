@@ -5,8 +5,13 @@ import android.content.Context
 import android.location.LocationManager
 import android.os.CancellationSignal
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
+import androidx.core.location.LocationRequestCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.prauga.maps.core.model.Coordinates
 import javax.inject.Inject
@@ -22,8 +27,7 @@ internal class PlatformLocationProvider @Inject constructor(
     // Callers ask for location permission first; getProviders(true) only lists providers it allows.
     @SuppressLint("MissingPermission")
     override suspend fun currentLocation(): Coordinates? {
-        val enabled = locationManager.getProviders(true)
-        val provider = ProviderPreference.firstOrNull { it in enabled } ?: return null
+        val provider = bestProvider() ?: return null
         val location = suspendCancellableCoroutine { continuation ->
             val signal = CancellationSignal()
             continuation.invokeOnCancellation { signal.cancel() }
@@ -37,7 +41,40 @@ internal class PlatformLocationProvider @Inject constructor(
         return location?.let { Coordinates(it.latitude, it.longitude) }
     }
 
+    @SuppressLint("MissingPermission")
+    override fun locationUpdates(): Flow<Coordinates> = callbackFlow {
+        val provider = bestProvider()
+        if (provider == null) {
+            close()
+            return@callbackFlow
+        }
+        val listener = LocationListenerCompat { trySend(Coordinates(it.latitude, it.longitude)) }
+        val request = LocationRequestCompat.Builder(UpdateIntervalMillis)
+            .setQuality(LocationRequestCompat.QUALITY_HIGH_ACCURACY)
+            .build()
+        try {
+            LocationManagerCompat.requestLocationUpdates(
+                locationManager,
+                provider,
+                request,
+                ContextCompat.getMainExecutor(context),
+                listener,
+            )
+        } catch (_: SecurityException) {
+            // Permission was taken away while the map was open.
+            close()
+        }
+        awaitClose { LocationManagerCompat.removeUpdates(locationManager, listener) }
+    }
+
+    private fun bestProvider(): String? {
+        val enabled = locationManager.getProviders(true)
+        return ProviderPreference.firstOrNull { it in enabled }
+    }
+
     private companion object {
+        const val UpdateIntervalMillis = 1_000L
+
         // FUSED_PROVIDER is API 31; below that it's simply never among the enabled providers.
         @SuppressLint("InlinedApi")
         val ProviderPreference = listOf(

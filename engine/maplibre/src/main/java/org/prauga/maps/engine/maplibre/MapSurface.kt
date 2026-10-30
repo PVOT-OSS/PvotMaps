@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -16,36 +19,51 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.maplibre.android.MapLibre
-import org.maplibre.android.camera.CameraPosition
-import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
-import org.prauga.maps.core.model.MapCamera
+import org.prauga.maps.core.model.UserPosition
 
 private val OrnamentMargin = 4.dp
 
+/**
+ * The map, drawn as a globe when zoomed out, with the user's position as a dot and heading cone.
+ * [contentPadding] is the part of the map covered by overlays; the attribution stays clear of it.
+ */
 @Composable
 fun MapSurface(
-    camera: MapCamera,
+    state: MapState,
     modifier: Modifier = Modifier,
+    userPosition: UserPosition? = null,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
     val mapView = remember { createMapView(context) }
     val dark = isSystemInDarkTheme()
+    var style by remember(mapView) { mutableStateOf<Style?>(null) }
 
     MapViewLifecycle(mapView)
 
+    DisposableEffect(mapView, state) {
+        mapView.getMapAsync(state::attach)
+        onDispose { state.detach() }
+    }
     LaunchedEffect(mapView, dark) {
         val palette = if (dark) MapPalette.Dark else MapPalette.Light
-        val style = runCatching { fetchMapStyle(MapStyles.BASE, palette, dark) }
+        val builder = runCatching { fetchMapStyle(MapStyles.BASE, palette, dark) }
             .map { Style.Builder().fromJson(it) }
             .getOrElse { Style.Builder().fromUri(MapStyles.BASE) }
-        mapView.getMapAsync { map -> map.setStyle(style) }
+        mapView.getMapAsync { map ->
+            map.setStyle(builder) { loaded ->
+                loaded.addUserLocationLayer(density.density)
+                style = loaded
+            }
+        }
     }
-    // Keeps the logo and the OpenStreetMap attribution clear of whatever is drawn over the map.
+    LaunchedEffect(style, userPosition) {
+        style?.takeIf { it.isFullyLoaded }?.setUserPosition(userPosition)
+    }
     val ornamentBottom = with(density) { (OrnamentMargin + contentPadding.calculateBottomPadding()).roundToPx() }
     LaunchedEffect(mapView, ornamentBottom) {
         mapView.getMapAsync { map ->
@@ -59,9 +77,6 @@ fun MapSurface(
                 )
             }
         }
-    }
-    LaunchedEffect(mapView, camera) {
-        mapView.getMapAsync { map -> map.cameraPosition = camera.toCameraPosition() }
     }
 
     AndroidView(factory = { mapView }, modifier = modifier)
@@ -94,9 +109,3 @@ private fun MapViewLifecycle(mapView: MapView) {
         }
     }
 }
-
-private fun MapCamera.toCameraPosition(): CameraPosition =
-    CameraPosition.Builder()
-        .target(LatLng(target.latitude, target.longitude))
-        .zoom(zoom)
-        .build()

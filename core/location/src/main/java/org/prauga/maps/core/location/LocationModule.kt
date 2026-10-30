@@ -10,4 +10,7 @@ import dagger.hilt.components.SingletonComponent
 internal abstract class LocationModule {
     @Binds
     abstract fun bindLocationProvider(provider: PlatformLocationProvider): LocationProvider
+
+    @Binds
+    abstract fun bindHeadingProvider(provider: SensorHeadingProvider): HeadingProvider
 }
