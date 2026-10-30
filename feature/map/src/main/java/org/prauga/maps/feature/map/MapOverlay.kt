@@ -1,24 +1,31 @@
 package org.prauga.maps.feature.map
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import com.prauga.pvot.designsystem.components.PvotGlassCard
-import com.prauga.pvot.designsystem.components.PvotGlassIconButton
+import com.prauga.pvot.designsystem.components.PvotGlassIconButtonDefaults
 import com.prauga.pvot.designsystem.effects.PvotGlassBackdrop
 import com.prauga.pvot.designsystem.effects.PvotGlassDefaults
 import com.prauga.pvot.designsystem.theme.PvotSpacing
@@ -51,25 +58,49 @@ internal fun MapOverlay(
     }
 }
 
+// One glass pill holding all the map buttons, like a single control rather than loose circles.
 @Composable
 private fun MapToolbar(
     backdrop: PvotGlassBackdrop,
     onLayers: () -> Unit,
     onMyLocation: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(PvotSpacing.S)) {
-        PvotGlassIconButton(onClick = onLayers, backdrop = backdrop) {
-            Icon(
-                painter = painterResource(R.drawable.ic_layers),
-                contentDescription = stringResource(R.string.map_layers),
-            )
-        }
-        PvotGlassIconButton(onClick = onMyLocation, backdrop = backdrop) {
-            Icon(
-                painter = painterResource(R.drawable.ic_location),
-                contentDescription = stringResource(R.string.map_my_location),
-            )
-        }
+    PvotGlassCard(
+        backdrop = backdrop,
+        cornerRadius = PvotGlassDefaults.CapsuleRadius,
+        contentPadding = PaddingValues(vertical = PvotSpacing.XS),
+    ) {
+        ToolbarButton(
+            icon = R.drawable.ic_layers,
+            contentDescription = stringResource(R.string.map_layers),
+            onClick = onLayers,
+        )
+        ToolbarButton(
+            icon = R.drawable.ic_location,
+            contentDescription = stringResource(R.string.map_my_location),
+            onClick = onMyLocation,
+        )
+    }
+}
+
+@Composable
+private fun ToolbarButton(
+    @DrawableRes icon: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(PvotGlassIconButtonDefaults.Size)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
