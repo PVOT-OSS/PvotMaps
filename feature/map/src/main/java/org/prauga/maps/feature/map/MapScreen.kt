@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.prauga.pvot.designsystem.components.PvotPersistentSheetDefaults
 import com.prauga.pvot.designsystem.components.PvotSheetDetent
 import com.prauga.pvot.designsystem.components.rememberPvotPersistentSheetState
 import com.prauga.pvot.designsystem.effects.pvotGlassBackdrop
@@ -94,7 +95,9 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
             modifier = Modifier
                 .fillMaxSize()
                 .pvotGlassBackdrop(backdrop),
-            contentPadding = PaddingValues(bottom = SearchPeekHeight + navigationBarBottom),
+            contentPadding = PaddingValues(
+                bottom = SearchPeekHeight + PvotPersistentSheetDefaults.FloatingMargin + navigationBarBottom,
+            ),
         )
         Box(
             Modifier
@@ -129,7 +132,7 @@ private fun MapWithOverlay(initialCamera: MapCamera, userPosition: UserPosition?
                     },
                 )
             }
-            MapSearchSheet(state = sheetState)
+            MapSearchSheet(state = sheetState, backdrop = backdrop)
         }
     }
     MapModesSheet(
