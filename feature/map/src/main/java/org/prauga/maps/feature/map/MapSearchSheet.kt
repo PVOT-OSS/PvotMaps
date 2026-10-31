@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +45,6 @@ import com.prauga.pvot.designsystem.components.PvotBottomSheetDefaults
 import com.prauga.pvot.designsystem.components.PvotPersistentSheet
 import com.prauga.pvot.designsystem.components.PvotPersistentSheetState
 import com.prauga.pvot.designsystem.components.PvotSheetDetent
-import com.prauga.pvot.designsystem.effects.LocalPvotGlassIntensity
 import com.prauga.pvot.designsystem.effects.PvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import kotlinx.coroutines.launch
@@ -89,33 +87,30 @@ internal fun MapSearchSheet(
     }
 
     val open = state.targetDetent != PvotSheetDetent.Collapsed
-    // Fully frosted, not liquid: a calm dark (or light) slab that the map only blurs through.
-    CompositionLocalProvider(LocalPvotGlassIntensity provides 0f) {
-        PvotPersistentSheet(
-            state = state,
-            peekHeight = SearchPeekHeight,
-            modifier = modifier,
-            floating = true,
-            backdrop = backdrop,
-        ) {
-            SearchRow(
-                query = query,
-                onQueryChange = { query = it },
-                interactionSource = interactionSource,
-            )
-            // Collapsed, the card ends at the search row; anything under it would peek out.
-            AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
-                Column(modifier = Modifier.padding(top = PvotSpacing.L)) {
-                    if (query.isEmpty()) {
-                        MapPlaces()
-                    } else {
-                        Text(
-                            text = stringResource(R.string.map_search_not_ready),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = PvotSpacing.S),
-                        )
-                    }
+    PvotPersistentSheet(
+        state = state,
+        peekHeight = SearchPeekHeight,
+        modifier = modifier,
+        floating = true,
+        backdrop = backdrop,
+    ) {
+        SearchRow(
+            query = query,
+            onQueryChange = { query = it },
+            interactionSource = interactionSource,
+        )
+        // Collapsed, the card ends at the search row; anything under it would peek out.
+        AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
+            Column(modifier = Modifier.padding(top = PvotSpacing.L)) {
+                if (query.isEmpty()) {
+                    MapPlaces()
+                } else {
+                    Text(
+                        text = stringResource(R.string.map_search_not_ready),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = PvotSpacing.S),
+                    )
                 }
             }
         }
