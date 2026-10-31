@@ -19,7 +19,10 @@ import org.prauga.maps.core.location.HeadingProvider
 import org.prauga.maps.core.location.LocationProvider
 import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapCamera
+import org.prauga.maps.core.model.MapMode
+import org.prauga.maps.core.model.MapSettings
 import org.prauga.maps.core.model.UserPosition
+import org.prauga.maps.core.settings.MapSettingsRepository
 import javax.inject.Inject
 
 internal const val StreetZoom = 15.0
@@ -34,6 +37,7 @@ internal sealed interface MapUiState {
 internal class MapViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     headingProvider: HeadingProvider,
+    private val settingsRepository: MapSettingsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MapUiState>(MapUiState.Locating)
@@ -51,6 +55,22 @@ internal class MapViewModel @Inject constructor(
         headingProvider.heading().map<Float, Float?> { it }.onStart { emit(null) },
     ) { coordinates, heading -> UserPosition(coordinates, heading) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), null)
+
+    /** The map's mode, labels and tilt as last left; null until read from storage. */
+    val settings: StateFlow<MapSettings?> = settingsRepository.settings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), null)
+
+    fun setMode(mode: MapMode) {
+        viewModelScope.launch { settingsRepository.setMode(mode) }
+    }
+
+    fun setLabels(labels: Boolean) {
+        viewModelScope.launch { settingsRepository.setLabels(labels) }
+    }
+
+    fun setTilted(tilted: Boolean) {
+        viewModelScope.launch { settingsRepository.setTilted(tilted) }
+    }
 
     fun locate() {
         if (_uiState.value is MapUiState.Ready || locateJob?.isActive == true) return

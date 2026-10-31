@@ -27,6 +27,7 @@ rootProject.name = "Pvot Maps"
 include(":app")
 include(":core:location")
 include(":core:model")
+include(":core:settings")
 include(":engine:maplibre")
 include(":feature:map")
 

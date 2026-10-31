@@ -17,6 +17,7 @@ private const val AnimationMillis = 600
 @Stable
 class MapState internal constructor(private var savedCamera: MapCamera) {
     private var map: MapLibreMap? = null
+    private var pendingTilt: Double? = null
 
     /** Where the map is looking now. */
     val camera: MapCamera
@@ -33,14 +34,20 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
 
     /** Tilts the map to [degrees] from straight down, keeping where it looks. */
     fun animateTilt(degrees: Double) {
-        val map = map ?: return
+        val map = map
+        if (map == null) {
+            pendingTilt = degrees
+            return
+        }
         val position = CameraPosition.Builder(map.cameraPosition).tilt(degrees).build()
         map.animateCamera(CameraUpdateFactory.newCameraPosition(position), AnimationMillis)
     }
 
     internal fun attach(map: MapLibreMap) {
         this.map = map
-        map.cameraPosition = savedCamera.toCameraPosition()
+        val position = savedCamera.toCameraPosition()
+        map.cameraPosition = pendingTilt?.let { CameraPosition.Builder(position).tilt(it).build() } ?: position
+        pendingTilt = null
     }
 
     internal fun detach() {

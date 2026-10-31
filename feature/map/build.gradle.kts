@@ -10,6 +10,7 @@ android {
 
 dependencies {
     implementation(project(":core:location"))
+    implementation(project(":core:settings"))
     implementation(project(":engine:maplibre"))
     implementation(libs.pvot.design.system)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
