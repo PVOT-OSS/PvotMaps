@@ -1,9 +1,11 @@
 package org.prauga.maps.feature.map
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -31,10 +34,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.prauga.pvot.designsystem.components.PvotPersistentSheetDefaults
@@ -102,6 +107,7 @@ private fun MapWithOverlay(
     val navigationBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     var toolbarHeight by remember { mutableIntStateOf(0) }
     var choosingMode by rememberSaveable { mutableStateOf(false) }
+    StatusBarIcons(overSpace = mapState.showsSpace)
     // Each time the map is created it starts flat; bring back the tilt the user left it at.
     LaunchedEffect(mapState) {
         if (settings.tilted) mapState.animateTilt(TiltDegrees)
@@ -164,6 +170,19 @@ private fun MapWithOverlay(
         onLabelsChange = onLabelsChange,
         onDismissRequest = { choosingMode = false },
     )
+}
+
+// Space around the globe is black in both themes, so over it the status bar needs light icons.
+@Composable
+private fun StatusBarIcons(overSpace: Boolean) {
+    val window = LocalActivity.current?.window ?: return
+    val view = LocalView.current
+    val dark = isSystemInDarkTheme()
+    DisposableEffect(window, view, overSpace, dark) {
+        val controller = WindowCompat.getInsetsController(window, view)
+        controller.isAppearanceLightStatusBars = !dark && !overSpace
+        onDispose { controller.isAppearanceLightStatusBars = !dark }
+    }
 }
 
 @Composable
