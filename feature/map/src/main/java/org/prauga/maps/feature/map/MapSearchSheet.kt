@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.prauga.pvot.designsystem.components.PvotBottomSheetDefaults
 import com.prauga.pvot.designsystem.components.PvotPersistentSheet
 import com.prauga.pvot.designsystem.components.PvotPersistentSheetState
 import com.prauga.pvot.designsystem.components.PvotSheetDetent
@@ -53,8 +54,11 @@ import kotlinx.coroutines.launch
 private val SearchRowHeight = 44.dp
 private const val FieldFillAlpha = 0.08f
 
-/** The drag handle and the search row: together they make the collapsed floating search bar. */
-internal val SearchPeekHeight = 72.dp
+// From the bar's top edge to the field: the handle and the space either side of it.
+private val HandleSpace = PvotSpacing.XS * 2 + PvotBottomSheetDefaults.HandleHeight
+
+/** The collapsed floating search bar: the field, centred, with the handle in the space above it. */
+internal val SearchPeekHeight = HandleSpace + SearchRowHeight + HandleSpace
 
 /**
  * Search, in a frosted sheet floating over the map. Collapsed it reads as a search bar with a
