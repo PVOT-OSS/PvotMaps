@@ -2,13 +2,16 @@ package org.prauga.maps.feature.map
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,14 +46,16 @@ import androidx.compose.ui.unit.dp
 import com.prauga.pvot.designsystem.components.PvotPersistentSheet
 import com.prauga.pvot.designsystem.components.PvotPersistentSheetState
 import com.prauga.pvot.designsystem.components.PvotSheetDetent
+import com.prauga.pvot.designsystem.effects.LocalPvotGlassIntensity
 import com.prauga.pvot.designsystem.effects.PvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import kotlinx.coroutines.launch
 
-private val SearchRowHeight = 40.dp
+private val SearchRowHeight = 44.dp
+private const val FieldFillAlpha = 0.08f
 
 /** The drag handle and the search row: together they make the collapsed floating search bar. */
-internal val SearchPeekHeight = 68.dp
+internal val SearchPeekHeight = 72.dp
 
 /**
  * Search, in a frosted sheet floating over the map. Collapsed it reads as a search bar with a
@@ -79,43 +85,61 @@ internal fun MapSearchSheet(
         scope.launch { state.animateTo(PvotSheetDetent.Collapsed) }
     }
 
-    PvotPersistentSheet(
-        state = state,
-        peekHeight = SearchPeekHeight,
-        modifier = modifier,
-        floating = true,
-        backdrop = backdrop,
-    ) {
-        SearchRow(query = query, onQueryChange = { query = it }, interactionSource = interactionSource)
-        // Collapsed, the card ends at the search row; anything under it would peek out.
-        AnimatedVisibility(
-            visible = state.targetDetent != PvotSheetDetent.Collapsed,
-            enter = fadeIn(),
-            exit = fadeOut(),
+    val open = state.targetDetent != PvotSheetDetent.Collapsed
+    // Fully frosted, not liquid: a calm dark (or light) slab that the map only blurs through.
+    CompositionLocalProvider(LocalPvotGlassIntensity provides 0f) {
+        PvotPersistentSheet(
+            state = state,
+            peekHeight = SearchPeekHeight,
+            modifier = modifier,
+            floating = true,
+            backdrop = backdrop,
         ) {
-            Text(
-                text = stringResource(R.string.map_search_not_ready),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = PvotSpacing.L),
+            SearchRow(
+                query = query,
+                onQueryChange = { query = it },
+                interactionSource = interactionSource,
+                filled = open,
             )
+            // Collapsed, the card ends at the search row; anything under it would peek out.
+            AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
+                Column(modifier = Modifier.padding(top = PvotSpacing.L)) {
+                    if (query.isEmpty()) {
+                        MapPlaces()
+                    } else {
+                        Text(
+                            text = stringResource(R.string.map_search_not_ready),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = PvotSpacing.S),
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
-// Borderless, like the floating bar it replaces: the glass card is the field's surface.
+// Borderless while collapsed, so the glass card is the bar; open, it becomes its own capsule.
 @Composable
 private fun SearchRow(
     query: String,
     onQueryChange: (String) -> Unit,
     interactionSource: MutableInteractionSource,
+    filled: Boolean,
 ) {
     val focusRequester = remember { FocusRequester() }
     val colors = MaterialTheme.colorScheme
+    val fill by animateColorAsState(
+        targetValue = colors.onSurface.copy(alpha = if (filled) FieldFillAlpha else 0f),
+        label = "searchFieldFill",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(SearchRowHeight)
+            .background(fill, CircleShape)
+            .padding(horizontal = PvotSpacing.M)
             .clickable(interactionSource = null, indication = null) { focusRequester.requestFocus() },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PvotSpacing.M),
