@@ -2,11 +2,9 @@ package org.prauga.maps.feature.map
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -54,7 +52,6 @@ import kotlinx.coroutines.launch
 
 private val SearchRowHeight = 44.dp
 private const val FieldFillAlpha = 0.08f
-private const val FieldOutlineAlpha = 0.22f
 
 /** The drag handle and the search row: together they make the collapsed floating search bar. */
 internal val SearchPeekHeight = 72.dp
@@ -101,7 +98,6 @@ internal fun MapSearchSheet(
                 query = query,
                 onQueryChange = { query = it },
                 interactionSource = interactionSource,
-                filled = open,
             )
             // Collapsed, the card ends at the search row; anything under it would peek out.
             AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
@@ -122,30 +118,20 @@ internal fun MapSearchSheet(
     }
 }
 
-// Outlined while collapsed, inside the glass bar; open, it becomes a filled capsule instead.
+// Its own filled capsule inside the glass bar, the same collapsed and open.
 @Composable
 private fun SearchRow(
     query: String,
     onQueryChange: (String) -> Unit,
     interactionSource: MutableInteractionSource,
-    filled: Boolean,
 ) {
     val focusRequester = remember { FocusRequester() }
     val colors = MaterialTheme.colorScheme
-    val fill by animateColorAsState(
-        targetValue = colors.onSurface.copy(alpha = if (filled) FieldFillAlpha else 0f),
-        label = "searchFieldFill",
-    )
-    val outline by animateColorAsState(
-        targetValue = colors.onSurface.copy(alpha = if (filled) 0f else FieldOutlineAlpha),
-        label = "searchFieldOutline",
-    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(SearchRowHeight)
-            .background(fill, CircleShape)
-            .border(1.dp, outline, CircleShape)
+            .background(colors.onSurface.copy(alpha = FieldFillAlpha), CircleShape)
             .padding(horizontal = PvotSpacing.M)
             .clickable(interactionSource = null, indication = null) { focusRequester.requestFocus() },
         verticalAlignment = Alignment.CenterVertically,
