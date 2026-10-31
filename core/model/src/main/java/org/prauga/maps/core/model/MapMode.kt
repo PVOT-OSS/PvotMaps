@@ -1,4 +1,4 @@
-package org.prauga.maps.engine.maplibre
+package org.prauga.maps.core.model
 
 /** What the map is drawn for. */
 enum class MapMode {

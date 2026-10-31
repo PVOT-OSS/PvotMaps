@@ -22,6 +22,7 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.UserPosition
 
 private val OrnamentMargin = 4.dp

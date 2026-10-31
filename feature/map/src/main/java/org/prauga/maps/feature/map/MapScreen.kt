@@ -44,8 +44,8 @@ import com.prauga.pvot.designsystem.effects.pvotGlassBackdrop
 import com.prauga.pvot.designsystem.effects.rememberPvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import org.prauga.maps.core.model.MapCamera
+import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.UserPosition
-import org.prauga.maps.engine.maplibre.MapMode
 import org.prauga.maps.engine.maplibre.MapSurface
 import org.prauga.maps.engine.maplibre.rememberMapState
 import kotlin.math.roundToInt

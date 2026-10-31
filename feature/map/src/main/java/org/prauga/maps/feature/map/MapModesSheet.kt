@@ -31,7 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.prauga.pvot.designsystem.components.PvotBottomSheet
 import com.prauga.pvot.designsystem.theme.PvotSpacing
-import org.prauga.maps.engine.maplibre.MapMode
+import org.prauga.maps.core.model.MapMode
 
 private val CardShape = RoundedCornerShape(16.dp)
 private const val CardFillAlpha = 0.06f

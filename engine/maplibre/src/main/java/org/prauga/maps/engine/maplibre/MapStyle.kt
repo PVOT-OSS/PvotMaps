@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import org.prauga.maps.core.model.MapMode
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 
