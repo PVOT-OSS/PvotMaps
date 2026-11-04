@@ -13,9 +13,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -61,13 +61,13 @@ internal fun MapModesSheet(
             }
         }
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = PvotSpacing.L)
-                .clip(CardShape)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = CardFillAlpha))
-                .toggleable(value = labels, role = Role.Switch, onValueChange = onLabelsChange)
-                .padding(horizontal = PvotSpacing.L, vertical = PvotSpacing.M),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(top = PvotSpacing.L)
+                    .clip(CardShape)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = CardFillAlpha))
+                    .toggleable(value = labels, role = Role.Switch, onValueChange = onLabelsChange)
+                    .padding(horizontal = PvotSpacing.L, vertical = PvotSpacing.M),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -91,21 +91,22 @@ private fun MapModeCard(
 ) {
     val colors = MaterialTheme.colorScheme
     Column(
-        modifier = modifier
-            .clip(CardShape)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        modifier =
+            modifier
+                .clip(CardShape)
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(PvotSpacing.S),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1.4f)
-                .background(colors.onSurface.copy(alpha = CardFillAlpha), CardShape)
-                .border(
-                    BorderStroke(2.dp, if (selected) colors.primary else Color.Transparent),
-                    CardShape,
-                ),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(1.4f)
+                    .background(colors.onSurface.copy(alpha = CardFillAlpha), CardShape)
+                    .border(
+                        BorderStroke(2.dp, if (selected) colors.primary else Color.Transparent),
+                        CardShape,
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -125,14 +126,16 @@ private fun MapModeCard(
 
 @get:DrawableRes
 private val MapMode.icon: Int
-    get() = when (this) {
-        MapMode.Explore -> R.drawable.ic_map
-        MapMode.Driving -> R.drawable.ic_steering_wheel
-    }
+    get() =
+        when (this) {
+            MapMode.Explore -> R.drawable.ic_map
+            MapMode.Driving -> R.drawable.ic_steering_wheel
+        }
 
 @get:StringRes
 private val MapMode.label: Int
-    get() = when (this) {
-        MapMode.Explore -> R.string.map_mode_explore
-        MapMode.Driving -> R.string.map_mode_driving
-    }
+    get() =
+        when (this) {
+            MapMode.Explore -> R.string.map_mode_explore
+            MapMode.Driving -> R.string.map_mode_driving
+        }

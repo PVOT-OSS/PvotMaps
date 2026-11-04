@@ -48,13 +48,13 @@ import com.prauga.pvot.designsystem.components.rememberPvotPersistentSheetState
 import com.prauga.pvot.designsystem.effects.pvotGlassBackdrop
 import com.prauga.pvot.designsystem.effects.rememberPvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
+import kotlin.math.roundToInt
 import org.prauga.maps.core.model.MapCamera
 import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.MapSettings
 import org.prauga.maps.core.model.UserPosition
 import org.prauga.maps.engine.maplibre.MapSurface
 import org.prauga.maps.engine.maplibre.rememberMapState
-import kotlin.math.roundToInt
 
 @Composable
 internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
@@ -78,14 +78,13 @@ internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
                 )
             }
         }
-        MapUiState.Locating -> Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator()
-        }
+        MapUiState.Locating ->
+            Box(
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
         MapUiState.LocationUnavailable -> LocationUnavailable(onRetry = viewModel::locate)
     }
 }
@@ -109,40 +108,38 @@ private fun MapWithOverlay(
     var choosingMode by rememberSaveable { mutableStateOf(false) }
     StatusBarIcons(overSpace = mapState.showsSpace)
     // Each time the map is created it starts flat; bring back the tilt the user left it at.
-    LaunchedEffect(mapState) {
-        if (settings.tilted) mapState.animateTilt(TiltDegrees)
-    }
+    LaunchedEffect(mapState) { if (settings.tilted) mapState.animateTilt(TiltDegrees) }
     Box(Modifier.fillMaxSize()) {
         MapSurface(
             state = mapState,
             userPosition = userPosition,
             mode = settings.mode,
             labels = settings.labels,
-            modifier = Modifier
-                .fillMaxSize()
-                .pvotGlassBackdrop(backdrop),
-            contentPadding = PaddingValues(
-                bottom = SearchPeekHeight + PvotPersistentSheetDefaults.FloatingMargin + navigationBarBottom,
-            ),
+            modifier = Modifier.fillMaxSize().pvotGlassBackdrop(backdrop),
+            contentPadding =
+                PaddingValues(
+                    bottom =
+                        SearchPeekHeight +
+                            PvotPersistentSheetDefaults.FloatingMargin +
+                            navigationBarBottom
+                ),
         )
-        Box(
-            Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
-        ) {
+        Box(Modifier.fillMaxSize().statusBarsPadding()) {
             // The pill rides just above the sheet and steps aside when the sheet fills the screen.
             AnimatedVisibility(
-                visible = !sheetState.offset.isNaN() && sheetState.targetDetent != PvotSheetDetent.Expanded,
+                visible =
+                    !sheetState.offset.isNaN() &&
+                        sheetState.targetDetent != PvotSheetDetent.Expanded,
                 enter = fadeIn(),
                 exit = fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset {
-                        val y = sheetState.offset - toolbarHeight - PvotSpacing.M.toPx()
-                        IntOffset(0, if (y.isNaN()) 0 else y.roundToInt())
-                    }
-                    .padding(end = PvotSpacing.L)
-                    .onSizeChanged { toolbarHeight = it.height },
+                modifier =
+                    Modifier.align(Alignment.TopEnd)
+                        .offset {
+                            val y = sheetState.offset - toolbarHeight - PvotSpacing.M.toPx()
+                            IntOffset(0, if (y.isNaN()) 0 else y.roundToInt())
+                        }
+                        .padding(end = PvotSpacing.L)
+                        .onSizeChanged { toolbarHeight = it.height },
             ) {
                 MapToolbar(
                     backdrop = backdrop,
@@ -155,7 +152,9 @@ private fun MapWithOverlay(
                     },
                     onMyLocation = {
                         val target = userPosition?.coordinates ?: return@MapToolbar
-                        mapState.animateTo(MapCamera(target, maxOf(mapState.camera.zoom, StreetZoom)))
+                        mapState.animateTo(
+                            MapCamera(target, maxOf(mapState.camera.zoom, StreetZoom))
+                        )
                     },
                 )
             }
@@ -188,11 +187,11 @@ private fun StatusBarIcons(overSpace: Boolean) {
 @Composable
 private fun LocationUnavailable(onRetry: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .safeDrawingPadding()
-            .padding(24.dp),
+        modifier =
+            Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .safeDrawingPadding()
+                .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -208,8 +207,6 @@ private fun LocationUnavailable(onRetry: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onRetry) {
-            Text(stringResource(R.string.location_unavailable_retry))
-        }
+        Button(onClick = onRetry) { Text(stringResource(R.string.location_unavailable_retry)) }
     }
 }

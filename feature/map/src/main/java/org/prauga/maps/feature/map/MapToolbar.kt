@@ -46,9 +46,15 @@ internal fun MapToolbar(
         }
         // Shows what a tap switches to, so it reads 3D while the map is flat.
         val tiltLabel = stringResource(if (tilted) R.string.map_flat else R.string.map_tilted)
-        ToolbarButton(onClick = onTilt, modifier = Modifier.semantics { contentDescription = tiltLabel }) {
+        ToolbarButton(
+            onClick = onTilt,
+            modifier = Modifier.semantics { contentDescription = tiltLabel },
+        ) {
             Text(
-                text = stringResource(if (tilted) R.string.map_flat_short else R.string.map_tilted_short),
+                text =
+                    stringResource(
+                        if (tilted) R.string.map_flat_short else R.string.map_tilted_short
+                    ),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.clearAndSetSemantics {},
@@ -67,10 +73,11 @@ private fun ToolbarButton(
     content: @Composable () -> Unit,
 ) {
     Box(
-        modifier = modifier
-            .size(PvotGlassIconButtonDefaults.Size)
-            .clip(CircleShape)
-            .clickable(role = Role.Button, onClick = onClick),
+        modifier =
+            modifier
+                .size(PvotGlassIconButtonDefaults.Size)
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         content()

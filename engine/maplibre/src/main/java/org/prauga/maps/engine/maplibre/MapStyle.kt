@@ -1,12 +1,12 @@
 package org.prauga.maps.engine.maplibre
 
+import java.net.URL
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.prauga.maps.core.model.MapMode
-import java.net.URL
-import java.util.concurrent.ConcurrentHashMap
 
 private const val ReliefSource = "ne2_shaded"
 private const val ReliefLayer = "earth_relief"
@@ -21,7 +21,12 @@ private const val EarthFadeEnd = 8
 private val downloadedStyles = ConcurrentHashMap<String, String>()
 
 // The globe is switched on only through the style JSON; MapLibre has no runtime projection API.
-internal suspend fun fetchMapStyle(styleUri: String, palette: MapPalette, dark: Boolean, mode: MapMode): String =
+internal suspend fun fetchMapStyle(
+    styleUri: String,
+    palette: MapPalette,
+    dark: Boolean,
+    mode: MapMode,
+): String =
     withContext(Dispatchers.IO) {
         val style = JSONObject(downloadedStyles.getOrPut(styleUri) { URL(styleUri).readText() })
         style.put("projection", JSONObject().put("type", "globe"))
@@ -67,30 +72,39 @@ private fun JSONArray.forDriving(): JSONArray {
         val layer = getJSONObject(i)
         when {
             layer.getString("id") == "building-3d" -> layer.layout().put("visibility", "none")
-            layer.optString("source-layer") == "poi" -> layer.put(
-                "filter",
-                JSONArray().put("all").put(layer.get("filter")).put(
-                    JSONArray().put("match").put(JSONArray().put("get").put("class"))
-                        .put(JSONArray().put("fuel").put("parking")).put(true).put(false),
-                ),
-            )
+            layer.optString("source-layer") == "poi" ->
+                layer.put(
+                    "filter",
+                    JSONArray()
+                        .put("all")
+                        .put(layer.get("filter"))
+                        .put(
+                            JSONArray()
+                                .put("match")
+                                .put(JSONArray().put("get").put("class"))
+                                .put(JSONArray().put("fuel").put("parking"))
+                                .put(true)
+                                .put(false)
+                        ),
+                )
         }
     }
     return this
 }
 
-private fun reliefLayer(dark: Boolean) = JSONObject()
-    .put("id", ReliefLayer)
-    .put("type", "raster")
-    .put("source", ReliefSource)
-    .put("maxzoom", EarthFadeEnd)
-    .put(
-        "paint",
-        JSONObject()
-            .put("raster-opacity", earthRamp(1, 0))
-            .put("raster-saturation", 0.2)
-            .put("raster-brightness-max", if (dark) 0.75 else 0.95),
-    )
+private fun reliefLayer(dark: Boolean) =
+    JSONObject()
+        .put("id", ReliefLayer)
+        .put("type", "raster")
+        .put("source", ReliefSource)
+        .put("maxzoom", EarthFadeEnd)
+        .put(
+            "paint",
+            JSONObject()
+                .put("raster-opacity", earthRamp(1, 0))
+                .put("raster-saturation", 0.2)
+                .put("raster-brightness-max", if (dark) 0.75 else 0.95),
+        )
 
 private fun JSONObject.fadeWaterFromOcean() {
     val paint = paint()
@@ -106,7 +120,12 @@ private fun JSONObject.paint(): JSONObject =
 
 private fun earthRamp(earth: Any, map: Any) = zoomRamp(EarthFadeStart, earth, EarthFadeEnd, map)
 
-private fun zoomRamp(fromZoom: Int, from: Any, toZoom: Int, to: Any) = JSONArray()
-    .put("interpolate").put(JSONArray().put("linear")).put(JSONArray().put("zoom"))
-    .put(fromZoom).put(from)
-    .put(toZoom).put(to)
+private fun zoomRamp(fromZoom: Int, from: Any, toZoom: Int, to: Any) =
+    JSONArray()
+        .put("interpolate")
+        .put(JSONArray().put("linear"))
+        .put(JSONArray().put("zoom"))
+        .put(fromZoom)
+        .put(from)
+        .put(toZoom)
+        .put(to)

@@ -3,6 +3,7 @@ package org.prauga.maps.feature.map
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,18 +24,21 @@ import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.MapSettings
 import org.prauga.maps.core.model.UserPosition
 import org.prauga.maps.core.settings.MapSettingsRepository
-import javax.inject.Inject
 
 internal const val StreetZoom = 15.0
 
 internal sealed interface MapUiState {
     data object Locating : MapUiState
+
     data class Ready(val camera: MapCamera) : MapUiState
+
     data object LocationUnavailable : MapUiState
 }
 
 @HiltViewModel
-internal class MapViewModel @Inject constructor(
+internal class MapViewModel
+@Inject
+constructor(
     private val locationProvider: LocationProvider,
     headingProvider: HeadingProvider,
     private val settingsRepository: MapSettingsRepository,
@@ -47,18 +51,25 @@ internal class MapViewModel @Inject constructor(
     private var firstFix: Coordinates? = null
 
     /** Live position and heading, only while the map is on screen. */
-    val userPosition: StateFlow<UserPosition?> = combine(
-        flow {
-            firstFix?.let { emit(it) }
-            emitAll(locationProvider.locationUpdates())
-        },
-        headingProvider.heading().map<Float, Float?> { it }.onStart { emit(null) },
-    ) { coordinates, heading -> UserPosition(coordinates, heading) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), null)
+    val userPosition: StateFlow<UserPosition?> =
+        combine(
+                flow {
+                    firstFix?.let { emit(it) }
+                    emitAll(locationProvider.locationUpdates())
+                },
+                headingProvider.heading().map<Float, Float?> { it }.onStart { emit(null) },
+            ) { coordinates, heading ->
+                UserPosition(coordinates, heading)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), null)
 
     /** The map's mode, labels and tilt as last left; null until read from storage. */
-    val settings: StateFlow<MapSettings?> = settingsRepository.settings
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), null)
+    val settings: StateFlow<MapSettings?> =
+        settingsRepository.settings.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(StopTimeoutMillis),
+            null,
+        )
 
     fun setMode(mode: MapMode) {
         viewModelScope.launch { settingsRepository.setMode(mode) }
@@ -74,16 +85,18 @@ internal class MapViewModel @Inject constructor(
 
     fun locate() {
         if (_uiState.value is MapUiState.Ready || locateJob?.isActive == true) return
-        locateJob = viewModelScope.launch {
-            _uiState.value = MapUiState.Locating
-            val location = locationProvider.currentLocation()
-            firstFix = location
-            _uiState.value = if (location != null) {
-                MapUiState.Ready(MapCamera(location, StreetZoom))
-            } else {
-                MapUiState.LocationUnavailable
+        locateJob =
+            viewModelScope.launch {
+                _uiState.value = MapUiState.Locating
+                val location = locationProvider.currentLocation()
+                firstFix = location
+                _uiState.value =
+                    if (location != null) {
+                        MapUiState.Ready(MapCamera(location, StreetZoom))
+                    } else {
+                        MapUiState.LocationUnavailable
+                    }
             }
-        }
     }
 
     private companion object {

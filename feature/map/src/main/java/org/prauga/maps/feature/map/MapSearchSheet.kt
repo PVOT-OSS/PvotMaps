@@ -59,9 +59,9 @@ private val HandleSpace = PvotSpacing.XS * 2 + PvotBottomSheetDefaults.HandleHei
 internal val SearchPeekHeight = HandleSpace + SearchRowHeight + HandleSpace
 
 /**
- * Search, in a frosted sheet floating over the map. Collapsed it reads as a search bar with a
- * drag handle on top; drag the handle, or start typing, and the same card opens into the sheet.
- * Finding places comes with on-device search; for now it only takes the query.
+ * Search, in a frosted sheet floating over the map. Collapsed it reads as a search bar with a drag
+ * handle on top; drag the handle, or start typing, and the same card opens into the sheet. Finding
+ * places comes with on-device search; for now it only takes the query.
  */
 @Composable
 internal fun MapSearchSheet(
@@ -75,9 +75,7 @@ internal fun MapSearchSheet(
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(focused) {
-        if (focused) state.animateTo(PvotSheetDetent.Expanded)
-    }
+    LaunchedEffect(focused) { if (focused) state.animateTo(PvotSheetDetent.Expanded) }
     LaunchedEffect(state.currentDetent) {
         if (state.currentDetent == PvotSheetDetent.Collapsed) focusManager.clearFocus()
     }
@@ -127,12 +125,14 @@ private fun SearchRow(
     val focusRequester = remember { FocusRequester() }
     val colors = MaterialTheme.colorScheme
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(SearchRowHeight)
-            .background(colors.onSurface.copy(alpha = FieldFillAlpha), CircleShape)
-            .padding(horizontal = PvotSpacing.M)
-            .clickable(interactionSource = null, indication = null) { focusRequester.requestFocus() },
+        modifier =
+            Modifier.fillMaxWidth()
+                .height(SearchRowHeight)
+                .background(colors.onSurface.copy(alpha = FieldFillAlpha), CircleShape)
+                .padding(horizontal = PvotSpacing.M)
+                .clickable(interactionSource = null, indication = null) {
+                    focusRequester.requestFocus()
+                },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PvotSpacing.M),
     ) {
@@ -152,9 +152,7 @@ private fun SearchRow(
             BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
                 cursorBrush = SolidColor(colors.primary),
@@ -167,9 +165,8 @@ private fun SearchRow(
                 painter = painterResource(R.drawable.ic_close),
                 contentDescription = stringResource(R.string.map_search_clear),
                 tint = colors.onSurfaceVariant,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable(role = Role.Button) { onQueryChange("") },
+                modifier =
+                    Modifier.clip(CircleShape).clickable(role = Role.Button) { onQueryChange("") },
             )
         }
     }

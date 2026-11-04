@@ -17,7 +17,9 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 internal abstract class SettingsModule {
     @Binds
-    abstract fun bindMapSettingsRepository(repository: DataStoreMapSettingsRepository): MapSettingsRepository
+    abstract fun bindMapSettingsRepository(
+        repository: DataStoreMapSettingsRepository
+    ): MapSettingsRepository
 
     companion object {
         // One DataStore per file for the whole process, as DataStore requires.

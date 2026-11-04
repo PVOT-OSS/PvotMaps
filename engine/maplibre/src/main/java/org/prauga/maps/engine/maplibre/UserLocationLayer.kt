@@ -47,14 +47,15 @@ internal fun Style.addUserLocationLayer(density: Float) {
                 PropertyFactory.iconPitchAlignment(Property.ICON_PITCH_ALIGNMENT_MAP),
                 PropertyFactory.iconAllowOverlap(true),
                 PropertyFactory.iconIgnorePlacement(true),
-            ),
+            )
     )
     addLayer(
-        SymbolLayer(DotLayer, Source).withProperties(
-            PropertyFactory.iconImage(DotImage),
-            PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconIgnorePlacement(true),
-        ),
+        SymbolLayer(DotLayer, Source)
+            .withProperties(
+                PropertyFactory.iconImage(DotImage),
+                PropertyFactory.iconAllowOverlap(true),
+                PropertyFactory.iconIgnorePlacement(true),
+            )
     )
 }
 
@@ -73,7 +74,8 @@ internal fun Style.setUserPosition(position: UserPosition?) {
 /** Shows or hides every label and place icon in the style, but never the user's dot. */
 internal fun Style.showLabels(visible: Boolean) {
     val visibility = PropertyFactory.visibility(if (visible) Property.VISIBLE else Property.NONE)
-    layers.filterIsInstance<SymbolLayer>()
+    layers
+        .filterIsInstance<SymbolLayer>()
         .filterNot { it.id == DotLayer || it.id == ConeLayer }
         .forEach { it.setProperties(visibility) }
 }
@@ -100,14 +102,18 @@ private fun coneBitmap(density: Float): Bitmap {
     val center = size / 2f
     return Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).apply {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.shader = RadialGradient(
-            center,
-            center,
-            radius,
-            intArrayOf(Color.argb(150, Color.red(Accent), Color.green(Accent), Color.blue(Accent)), Color.TRANSPARENT),
-            null,
-            Shader.TileMode.CLAMP,
-        )
+        paint.shader =
+            RadialGradient(
+                center,
+                center,
+                radius,
+                intArrayOf(
+                    Color.argb(150, Color.red(Accent), Color.green(Accent), Color.blue(Accent)),
+                    Color.TRANSPARENT,
+                ),
+                null,
+                Shader.TileMode.CLAMP,
+            )
         val bounds = RectF(center - radius, center - radius, center + radius, center + radius)
         Canvas(this).drawArc(bounds, -90f - ConeSweep / 2, ConeSweep, true, paint)
     }

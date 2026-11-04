@@ -7,15 +7,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.pow
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapCamera
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.pow
 
 private const val AnimationMillis = 600
 private const val TileSize = 512.0
@@ -28,7 +28,10 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
     private var viewportHeightDp = 0f
     private val cameraListener = MapLibreMap.OnCameraMoveListener { updateShowsSpace() }
 
-    /** Whether the map is zoomed out so far that space shows above the globe, at the top of the screen. */
+    /**
+     * Whether the map is zoomed out so far that space shows above the globe, at the top of the
+     * screen.
+     */
     var showsSpace: Boolean by mutableStateOf(false)
         private set
 
@@ -42,7 +45,10 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
             savedCamera = camera
             return
         }
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(camera.toCameraPosition()), AnimationMillis)
+        map.animateCamera(
+            CameraUpdateFactory.newCameraPosition(camera.toCameraPosition()),
+            AnimationMillis,
+        )
     }
 
     /** Tilts the map to [degrees] from straight down, keeping where it looks. */
@@ -59,7 +65,8 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
     internal fun attach(map: MapLibreMap) {
         this.map = map
         val position = savedCamera.toCameraPosition()
-        map.cameraPosition = pendingTilt?.let { CameraPosition.Builder(position).tilt(it).build() } ?: position
+        map.cameraPosition =
+            pendingTilt?.let { CameraPosition.Builder(position).tilt(it).build() } ?: position
         pendingTilt = null
         map.addOnCameraMoveListener(cameraListener)
         updateShowsSpace()
@@ -86,10 +93,11 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
     }
 
     internal companion object {
-        val Saver = Saver<MapState, DoubleArray>(
-            save = { it.camera.run { doubleArrayOf(target.latitude, target.longitude, zoom) } },
-            restore = { MapState(MapCamera(Coordinates(it[0], it[1]), it[2])) },
-        )
+        val Saver =
+            Saver<MapState, DoubleArray>(
+                save = { it.camera.run { doubleArrayOf(target.latitude, target.longitude, zoom) } },
+                restore = { MapState(MapCamera(Coordinates(it[0], it[1]), it[2])) },
+            )
     }
 }
 
@@ -99,10 +107,7 @@ fun rememberMapState(initialCamera: MapCamera): MapState =
 
 // Keeps the user's tilt and rotation; only the target and zoom are ours to set.
 private fun MapCamera.toCameraPosition(): CameraPosition =
-    CameraPosition.Builder()
-        .target(LatLng(target.latitude, target.longitude))
-        .zoom(zoom)
-        .build()
+    CameraPosition.Builder().target(LatLng(target.latitude, target.longitude)).zoom(zoom).build()
 
 private fun CameraPosition.toMapCamera(): MapCamera {
     val target = target ?: LatLng()

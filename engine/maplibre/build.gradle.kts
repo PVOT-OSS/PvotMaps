@@ -3,9 +3,7 @@ plugins {
     id("maps.android.compose")
 }
 
-android {
-    namespace = "org.prauga.maps.engine.maplibre"
-}
+android { namespace = "org.prauga.maps.engine.maplibre" }
 
 dependencies {
     api(project(":core:model"))

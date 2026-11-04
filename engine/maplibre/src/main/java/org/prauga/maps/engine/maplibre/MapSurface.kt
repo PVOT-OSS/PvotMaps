@@ -55,9 +55,10 @@ fun MapSurface(
     }
     LaunchedEffect(mapView, dark, mode) {
         val palette = if (dark) MapPalette.Dark else MapPalette.Light
-        val builder = runCatching { fetchMapStyle(MapStyles.BASE, palette, dark, mode) }
-            .map { Style.Builder().fromJson(it) }
-            .getOrElse { Style.Builder().fromUri(MapStyles.BASE) }
+        val builder =
+            runCatching { fetchMapStyle(MapStyles.BASE, palette, dark, mode) }
+                .map { Style.Builder().fromJson(it) }
+                .getOrElse { Style.Builder().fromUri(MapStyles.BASE) }
         mapView.getMapAsync { map ->
             map.setStyle(builder) { loaded ->
                 loaded.addUserLocationLayer(density.density)
@@ -65,13 +66,12 @@ fun MapSurface(
             }
         }
     }
-    LaunchedEffect(style, labels) {
-        style?.takeIf { it.isFullyLoaded }?.showLabels(labels)
-    }
+    LaunchedEffect(style, labels) { style?.takeIf { it.isFullyLoaded }?.showLabels(labels) }
     LaunchedEffect(style, userPosition) {
         style?.takeIf { it.isFullyLoaded }?.setUserPosition(userPosition)
     }
-    val ornamentBottom = with(density) { (OrnamentMargin + contentPadding.calculateBottomPadding()).roundToPx() }
+    val ornamentBottom =
+        with(density) { (OrnamentMargin + contentPadding.calculateBottomPadding()).roundToPx() }
     LaunchedEffect(mapView, ornamentBottom) {
         mapView.getMapAsync { map ->
             with(map.uiSettings) {
@@ -88,7 +88,10 @@ fun MapSurface(
 
     AndroidView(
         factory = { mapView },
-        modifier = modifier.onSizeChanged { state.setViewportHeight(with(density) { it.height.toDp().value }) },
+        modifier =
+            modifier.onSizeChanged {
+                state.setViewportHeight(with(density) { it.height.toDp().value })
+            },
     )
 }
 

@@ -30,12 +30,15 @@ import com.prauga.pvot.designsystem.theme.PvotSpacing
 private const val CircleFillAlpha = 0.08f
 
 /**
- * Shortcuts to the user's own places. Saving them comes with on-device storage; for now the
- * circles are stubs that do nothing.
+ * Shortcuts to the user's own places. Saving them comes with on-device storage; for now the circles
+ * are stubs that do nothing.
  */
 @Composable
 internal fun MapPlaces(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(PvotSpacing.M)) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(PvotSpacing.M),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.map_places),
@@ -66,17 +69,15 @@ private fun PlaceCircle(
 ) {
     val colors = MaterialTheme.colorScheme
     Column(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(role = Role.Button) {},
+        modifier = modifier.clip(MaterialTheme.shapes.medium).clickable(role = Role.Button) {},
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(PvotSpacing.S),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .background(colors.onSurface.copy(alpha = CircleFillAlpha), CircleShape),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(1f)
+                    .background(colors.onSurface.copy(alpha = CircleFillAlpha), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

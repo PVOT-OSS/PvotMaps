@@ -9,18 +9,18 @@ import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.location.LocationRequestCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import kotlin.coroutines.resume
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.prauga.maps.core.model.Coordinates
-import javax.inject.Inject
-import kotlin.coroutines.resume
 
 // Platform LocationManager only: no Google Play services.
-internal class PlatformLocationProvider @Inject constructor(
-    @param:ApplicationContext private val context: Context,
-) : LocationProvider {
+internal class PlatformLocationProvider
+@Inject
+constructor(@param:ApplicationContext private val context: Context) : LocationProvider {
 
     private val locationManager = context.getSystemService(LocationManager::class.java)
 
@@ -28,16 +28,19 @@ internal class PlatformLocationProvider @Inject constructor(
     @SuppressLint("MissingPermission")
     override suspend fun currentLocation(): Coordinates? {
         val provider = bestProvider() ?: return null
-        val location = suspendCancellableCoroutine { continuation ->
-            val signal = CancellationSignal()
-            continuation.invokeOnCancellation { signal.cancel() }
-            LocationManagerCompat.getCurrentLocation(
-                locationManager,
-                provider,
-                signal,
-                ContextCompat.getMainExecutor(context),
-            ) { continuation.resume(it) }
-        } ?: locationManager.getLastKnownLocation(provider)
+        val location =
+            suspendCancellableCoroutine { continuation ->
+                val signal = CancellationSignal()
+                continuation.invokeOnCancellation { signal.cancel() }
+                LocationManagerCompat.getCurrentLocation(
+                    locationManager,
+                    provider,
+                    signal,
+                    ContextCompat.getMainExecutor(context),
+                ) {
+                    continuation.resume(it)
+                }
+            } ?: locationManager.getLastKnownLocation(provider)
         return location?.let { Coordinates(it.latitude, it.longitude) }
     }
 
@@ -49,9 +52,10 @@ internal class PlatformLocationProvider @Inject constructor(
             return@callbackFlow
         }
         val listener = LocationListenerCompat { trySend(Coordinates(it.latitude, it.longitude)) }
-        val request = LocationRequestCompat.Builder(UpdateIntervalMillis)
-            .setQuality(LocationRequestCompat.QUALITY_HIGH_ACCURACY)
-            .build()
+        val request =
+            LocationRequestCompat.Builder(UpdateIntervalMillis)
+                .setQuality(LocationRequestCompat.QUALITY_HIGH_ACCURACY)
+                .build()
         try {
             LocationManagerCompat.requestLocationUpdates(
                 locationManager,
@@ -77,10 +81,11 @@ internal class PlatformLocationProvider @Inject constructor(
 
         // FUSED_PROVIDER is API 31; below that it's simply never among the enabled providers.
         @SuppressLint("InlinedApi")
-        val ProviderPreference = listOf(
-            LocationManager.FUSED_PROVIDER,
-            LocationManager.GPS_PROVIDER,
-            LocationManager.NETWORK_PROVIDER,
-        )
+        val ProviderPreference =
+            listOf(
+                LocationManager.FUSED_PROVIDER,
+                LocationManager.GPS_PROVIDER,
+                LocationManager.NETWORK_PROVIDER,
+            )
     }
 }

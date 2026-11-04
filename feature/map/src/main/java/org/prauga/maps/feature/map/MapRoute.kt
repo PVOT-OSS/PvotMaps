@@ -4,7 +4,5 @@ import androidx.compose.runtime.Composable
 
 @Composable
 fun MapRoute() {
-    LocationPermissionGate {
-        MapScreen()
-    }
+    LocationPermissionGate { MapScreen() }
 }

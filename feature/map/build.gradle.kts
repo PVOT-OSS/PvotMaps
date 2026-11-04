@@ -4,9 +4,7 @@ plugins {
     id("maps.hilt")
 }
 
-android {
-    namespace = "org.prauga.maps.feature.map"
-}
+android { namespace = "org.prauga.maps.feature.map" }
 
 dependencies {
     implementation(project(":core:location"))

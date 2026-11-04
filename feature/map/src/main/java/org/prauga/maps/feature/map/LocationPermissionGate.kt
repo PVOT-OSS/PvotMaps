@@ -34,24 +34,21 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 
-private val LocationPermissions = arrayOf(
-    Manifest.permission.ACCESS_FINE_LOCATION,
-    Manifest.permission.ACCESS_COARSE_LOCATION,
-)
+private val LocationPermissions =
+    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
 
 @Composable
 internal fun LocationPermissionGate(content: @Composable () -> Unit) {
     val context = LocalContext.current
     var granted by remember { mutableStateOf(context.hasLocationPermission()) }
     var asked by rememberSaveable { mutableStateOf(false) }
-    val launcher = rememberLauncherForActivityResult(RequestMultiplePermissions()) { result ->
-        asked = true
-        granted = result.values.any { it }
-    }
+    val launcher =
+        rememberLauncherForActivityResult(RequestMultiplePermissions()) { result ->
+            asked = true
+            granted = result.values.any { it }
+        }
 
-    LaunchedEffect(Unit) {
-        if (!granted && !asked) launcher.launch(LocationPermissions)
-    }
+    LaunchedEffect(Unit) { if (!granted && !asked) launcher.launch(LocationPermissions) }
     // The user may grant it from system settings while we're in the background.
     LifecycleResumeEffect(Unit) {
         granted = context.hasLocationPermission()
@@ -60,24 +57,22 @@ internal fun LocationPermissionGate(content: @Composable () -> Unit) {
 
     when {
         granted -> content()
-        asked -> LocationPermissionDenied(
-            onAllow = { launcher.launch(LocationPermissions) },
-            onOpenSettings = { context.openAppSettings() },
-        )
+        asked ->
+            LocationPermissionDenied(
+                onAllow = { launcher.launch(LocationPermissions) },
+                onOpenSettings = { context.openAppSettings() },
+            )
     }
 }
 
 @Composable
-private fun LocationPermissionDenied(
-    onAllow: () -> Unit,
-    onOpenSettings: () -> Unit,
-) {
+private fun LocationPermissionDenied(onAllow: () -> Unit, onOpenSettings: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .safeDrawingPadding()
-            .padding(24.dp),
+        modifier =
+            Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .safeDrawingPadding()
+                .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -93,9 +88,7 @@ private fun LocationPermissionDenied(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onAllow) {
-            Text(stringResource(R.string.location_permission_allow))
-        }
+        Button(onClick = onAllow) { Text(stringResource(R.string.location_permission_allow)) }
         TextButton(onClick = onOpenSettings) {
             Text(stringResource(R.string.location_permission_settings))
         }
@@ -109,7 +102,10 @@ private fun Context.hasLocationPermission(): Boolean =
 
 private fun Context.openAppSettings() {
     startActivity(
-        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+        Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", packageName, null),
+            )
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )
 }

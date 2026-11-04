@@ -10,10 +10,6 @@ import org.prauga.maps.feature.map.MapRoute
 class MainActivity : PvotBaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setPvotContent {
-            PvotAppTheme {
-                MapRoute()
-            }
-        }
+        setPvotContent { PvotAppTheme { MapRoute() } }
     }
 }

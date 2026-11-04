@@ -3,9 +3,7 @@ plugins {
     id("maps.hilt")
 }
 
-android {
-    namespace = "org.prauga.maps.core.settings"
-}
+android { namespace = "org.prauga.maps.core.settings" }
 
 dependencies {
     api(project(":core:model"))
