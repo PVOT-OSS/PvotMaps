@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: Saalim Quadri <danascape@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+version = 1
+SPDX-PackageName = "PvotMaps"
+SPDX-PackageSupplier = "Saalim Quadri <danascape@gmail.com>"
+SPDX-PackageDownloadLocation = "https://github.com/PVOT-OSS/PvotMaps"
+
+[[annotations]]
+path = [".github/workflows/**", "**/.gitignore", ".gitmodules", "THIRD_PARTY_NOTICES.md", "gradle/gradle-daemon-jvm.properties"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Saalim Quadri <danascape@gmail.com>"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["gradlew", "gradlew.bat", "gradle/wrapper/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2007-2023 Gradle, Inc."
+SPDX-License-Identifier = "Apache-2.0"

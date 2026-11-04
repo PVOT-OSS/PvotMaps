@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Tabler Icons "briefcase" (MIT License, Copyright (c) 2020-2026 Paweł Kuna), https://tabler.io/icons
+     SPDX-FileCopyrightText: 2020-2026 Paweł Kuna
+     SPDX-License-Identifier: MIT
+
+     Tabler Icons "briefcase", https://tabler.io/icons
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
