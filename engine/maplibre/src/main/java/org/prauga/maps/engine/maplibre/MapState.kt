@@ -24,6 +24,7 @@ import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapCamera
 
 private const val AnimationMillis = 600
+private const val FollowMillis = 900
 private const val TileSize = 512.0
 
 /** Moves the camera of a [MapSurface] and remembers where it was across recreation. */
@@ -65,6 +66,7 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
     /**
      * Frames all of [points], leaving [padding] pixels free on each side, plus [topPadding] at the
      * top and [bottomPadding] at the bottom for whatever covers the map there (status bar, sheet).
+     * The map ends up flat and north up, however it was turned before.
      */
     fun fitBounds(
         points: List<Coordinates>,
@@ -78,6 +80,8 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
         map.animateCamera(
             CameraUpdateFactory.newLatLngBounds(
                 bounds,
+                0.0,
+                0.0,
                 padding,
                 padding + topPadding,
                 padding,
@@ -85,6 +89,23 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
             ),
             AnimationMillis,
         )
+    }
+
+    /**
+     * Follows a moving user: centres [target], turned so [bearing] points up and tilted, with
+     * [topPadding] pixels kept free at the top so more of the road ahead shows.
+     */
+    fun follow(target: Coordinates, bearing: Double, zoom: Double, tilt: Double, topPadding: Int) {
+        val map = map ?: return
+        val position =
+            CameraPosition.Builder()
+                .target(LatLng(target.latitude, target.longitude))
+                .zoom(zoom)
+                .bearing(bearing)
+                .tilt(tilt)
+                .padding(0.0, topPadding.toDouble(), 0.0, 0.0)
+                .build()
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(position), FollowMillis)
     }
 
     /** Tilts the map to [degrees] from straight down, keeping where it looks. */
