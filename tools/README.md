@@ -44,9 +44,29 @@ PATH=$PWD/.venv/bin:$PATH tools/routing/build_tiles.sh "$data/regions/bengaluru.
   ten seconds for Bengaluru). The admin database comes from the larger extract; a regional one has
   no country polygon, so the driving side is set by hand.
 
-## Trying it on a phone
+## Publishing a region
 
-Until regions can be downloaded, copy the database into a debug build's storage:
+`package.py` copies a built region into a static site and adds it to the site's `regions.json`,
+with each file's size and SHA-256; the version is the OpenStreetMap date of the data:
+
+```sh
+.venv/bin/python -I tools/regions/package.py bengaluru "$data" site/
+```
+
+Upload `site/` to any static host, then build the app pointed at it:
+
+```sh
+./gradlew assembleRelease -PpvotMapsRegionsUrl=https://example.org/pvot-maps
+```
+
+The app's Map modes sheet lists the regions under "Offline data" and downloads, updates and
+deletes them, checking every file before using it. Without `pvotMapsRegionsUrl` the build can't
+download regions. A debug build allows plain HTTP to `localhost`, so a local server works through
+`adb reverse tcp:8765 tcp:8765` and `-PpvotMapsRegionsUrl=http://localhost:8765`.
+
+## Trying it on a phone without a server
+
+Copy the database into a debug build's storage:
 
 ```sh
 adb push "$data/search/places.db" /data/local/tmp/places.db
