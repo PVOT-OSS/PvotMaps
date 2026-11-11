@@ -28,6 +28,7 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.UserPosition
 
@@ -42,6 +43,7 @@ fun MapSurface(
     state: MapState,
     modifier: Modifier = Modifier,
     userPosition: UserPosition? = null,
+    selectedPlace: Coordinates? = null,
     mode: MapMode = MapMode.Explore,
     labels: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(),
@@ -66,12 +68,16 @@ fun MapSurface(
                 .getOrElse { Style.Builder().fromUri(MapStyles.BASE) }
         mapView.getMapAsync { map ->
             map.setStyle(builder) { loaded ->
+                loaded.addSelectedPlaceLayer(density.density)
                 loaded.addUserLocationLayer(density.density)
                 style = loaded
             }
         }
     }
     LaunchedEffect(style, labels) { style?.takeIf { it.isFullyLoaded }?.showLabels(labels) }
+    LaunchedEffect(style, selectedPlace) {
+        style?.takeIf { it.isFullyLoaded }?.setSelectedPlace(selectedPlace)
+    }
     LaunchedEffect(style, userPosition) {
         style?.takeIf { it.isFullyLoaded }?.setUserPosition(userPosition)
     }

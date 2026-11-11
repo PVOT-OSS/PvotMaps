@@ -44,16 +44,21 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
     val camera: MapCamera
         get() = map?.cameraPosition?.toMapCamera() ?: savedCamera
 
-    fun animateTo(camera: MapCamera) {
+    /**
+     * Flies to [camera]. [bottomPadding] (pixels) is the part of the map covered from below, such
+     * as by a sheet, so the target lands in the middle of what is still visible.
+     */
+    fun animateTo(camera: MapCamera, bottomPadding: Int = 0) {
         val map = map
         if (map == null) {
             savedCamera = camera
             return
         }
-        map.animateCamera(
-            CameraUpdateFactory.newCameraPosition(camera.toCameraPosition()),
-            AnimationMillis,
-        )
+        val position =
+            CameraPosition.Builder(camera.toCameraPosition())
+                .padding(0.0, 0.0, 0.0, bottomPadding.toDouble())
+                .build()
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(position), AnimationMillis)
     }
 
     /** Tilts the map to [degrees] from straight down, keeping where it looks. */
