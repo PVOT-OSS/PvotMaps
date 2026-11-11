@@ -35,9 +35,12 @@ include(":app")
 include(":core:location")
 
 include(":core:model")
+
 include(":core:search")
 
 include(":core:settings")
+
+include(":data:search")
 
 include(":engine:maplibre")
 

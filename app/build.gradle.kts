@@ -30,6 +30,7 @@ android {
 
 dependencies {
     implementation(project(":feature:map"))
+    implementation(project(":data:search"))
     implementation(libs.pvot.design.system)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
