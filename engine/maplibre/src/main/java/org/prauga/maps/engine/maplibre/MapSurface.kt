@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
@@ -25,6 +26,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.maplibre.android.MapLibre
+import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
@@ -45,6 +47,8 @@ fun MapSurface(
     userPosition: UserPosition? = null,
     selectedPlace: Coordinates? = null,
     route: List<Coordinates>? = null,
+    onPlaceTap: (TappedPlace) -> Unit = {},
+    onLongPress: (Coordinates) -> Unit = {},
     mode: MapMode = MapMode.Explore,
     labels: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(),
@@ -57,6 +61,32 @@ fun MapSurface(
 
     MapViewLifecycle(mapView)
 
+    val placeTap by rememberUpdatedState(onPlaceTap)
+    val longPress by rememberUpdatedState(onLongPress)
+    DisposableEffect(mapView) {
+        var attached: MapLibreMap? = null
+        val click =
+            MapLibreMap.OnMapClickListener { point ->
+                val place =
+                    attached?.placeAt(point, density.density) ?: return@OnMapClickListener false
+                placeTap(place)
+                true
+            }
+        val hold =
+            MapLibreMap.OnMapLongClickListener { point ->
+                longPress(Coordinates(point.latitude, point.longitude))
+                true
+            }
+        mapView.getMapAsync { map ->
+            attached = map
+            map.addOnMapClickListener(click)
+            map.addOnMapLongClickListener(hold)
+        }
+        onDispose {
+            attached?.removeOnMapClickListener(click)
+            attached?.removeOnMapLongClickListener(hold)
+        }
+    }
     DisposableEffect(mapView, state) {
         mapView.getMapAsync(state::attach)
         onDispose { state.detach() }
