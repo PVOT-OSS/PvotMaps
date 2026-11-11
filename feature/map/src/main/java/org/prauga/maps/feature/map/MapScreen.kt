@@ -34,11 +34,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +57,7 @@ import com.prauga.pvot.designsystem.effects.rememberPvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapCamera
 import org.prauga.maps.core.model.MapMode
@@ -98,6 +101,7 @@ internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
 }
 
 private const val TiltDegrees = 60.0
+private const val PlaceZoom = 16.5
 
 @Composable
 private fun MapWithOverlay(
@@ -108,6 +112,7 @@ private fun MapWithOverlay(
     onModeChange: (MapMode) -> Unit,
     onLabelsChange: (Boolean) -> Unit,
     onTiltedChange: (Boolean) -> Unit,
+    searchViewModel: SearchViewModel = hiltViewModel(),
 ) {
     val mapState = rememberMapState(initialCamera)
     val sheetState = rememberPvotPersistentSheetState()
@@ -115,16 +120,23 @@ private fun MapWithOverlay(
     val navigationBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     var toolbarHeight by remember { mutableIntStateOf(0) }
     var choosingMode by rememberSaveable { mutableStateOf(false) }
+    var mapHeight by remember { mutableIntStateOf(0) }
+    val query by searchViewModel.query.collectAsStateWithLifecycle()
+    val results by searchViewModel.results.collectAsStateWithLifecycle()
+    val selected by searchViewModel.selected.collectAsStateWithLifecycle()
+    val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
     StatusBarIcons(overSpace = mapState.showsSpace)
     LaunchedEffect(mapState, recenter) {
         recenter.collect { mapState.animateTo(MapCamera(it, StreetZoom)) }
     }
     // Each time the map is created it starts flat; bring back the tilt the user left it at.
     LaunchedEffect(mapState) { if (settings.tilted) mapState.animateTilt(TiltDegrees) }
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().onSizeChanged { mapHeight = it.height }) {
         MapSurface(
             state = mapState,
             userPosition = userPosition,
+            selectedPlace = selected?.coordinates,
             mode = settings.mode,
             labels = settings.labels,
             modifier = Modifier.fillMaxSize().pvotGlassBackdrop(backdrop),
@@ -170,7 +182,28 @@ private fun MapWithOverlay(
                     },
                 )
             }
-            MapSearchSheet(state = sheetState, backdrop = backdrop)
+            MapSearchSheet(
+                state = sheetState,
+                backdrop = backdrop,
+                query = query,
+                // Equally good matches rank by closeness to where the map is looking.
+                onQueryChange = { searchViewModel.onQueryChange(it, mapState.camera.target) },
+                results = results,
+                selected = selected,
+                onPlaceClick = { place ->
+                    focusManager.clearFocus()
+                    searchViewModel.select(place)
+                    scope.launch { sheetState.animateTo(PvotSheetDetent.Medium) }
+                    // The half-open sheet covers the bottom of the map; centre the place above it.
+                    mapState.animateTo(
+                        MapCamera(place.coordinates, maxOf(mapState.camera.zoom, PlaceZoom)),
+                        bottomPadding =
+                            (mapHeight * PvotPersistentSheetDefaults.MediumFraction).roundToInt(),
+                    )
+                },
+                onCloseSelected = searchViewModel::clearSelection,
+                userPosition = userPosition?.coordinates,
+            )
         }
     }
     MapModesSheet(

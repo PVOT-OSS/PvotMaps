@@ -16,7 +16,6 @@
     <string name="map_place_home">Home</string>
     <string name="map_place_work">Work</string>
     <string name="map_place_add">Add</string>
-    <string name="map_search_not_ready">Finding places isn’t ready yet. When it is, search will run on your phone, so what you type stays with you.</string>
     <string name="map_modes">Map modes</string>
     <string name="map_mode_explore">Explore</string>
     <string name="map_mode_driving">Driving</string>
@@ -26,4 +25,9 @@
     <string name="map_flat">Show flat</string>
     <string name="map_tilted_short">3D</string>
     <string name="map_flat_short">2D</string>
+    <string name="map_search_unavailable">Search data for this area isn’t on your phone yet.</string>
+    <string name="map_search_no_results">No places found.</string>
+    <string name="map_place_close">Close</string>
+    <string name="map_distance_m">%1$d m</string>
+    <string name="map_distance_km">%1$.1f km</string>
 </resources>

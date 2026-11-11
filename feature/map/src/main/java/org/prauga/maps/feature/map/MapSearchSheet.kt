@@ -17,10 +17,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -29,11 +36,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,7 +48,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.prauga.pvot.designsystem.components.PvotBottomSheetDefaults
 import com.prauga.pvot.designsystem.components.PvotPersistentSheet
@@ -53,9 +59,13 @@ import com.prauga.pvot.designsystem.components.PvotSheetDetent
 import com.prauga.pvot.designsystem.effects.PvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import kotlinx.coroutines.launch
+import org.prauga.maps.core.model.Coordinates
+import org.prauga.maps.core.model.Place
+import org.prauga.maps.core.model.distanceTo
 
 private val SearchRowHeight = 44.dp
 private const val FieldFillAlpha = 0.08f
+private val KindIconSize = 40.dp
 
 // From the bar's top edge to the field: the handle and the space either side of it.
 private val HandleSpace = PvotSpacing.XS * 2 + PvotBottomSheetDefaults.HandleHeight
@@ -65,16 +75,22 @@ internal val SearchPeekHeight = HandleSpace + SearchRowHeight + HandleSpace
 
 /**
  * Search, in a frosted sheet floating over the map. Collapsed it reads as a search bar with a drag
- * handle on top; drag the handle, or start typing, and the same card opens into the sheet. Finding
- * places comes with on-device search; for now it only takes the query.
+ * handle on top; drag the handle, or start typing, and the same card opens into the sheet, listing
+ * places as you type and, once one is chosen, a card about it.
  */
 @Composable
 internal fun MapSearchSheet(
     state: PvotPersistentSheetState,
     backdrop: PvotGlassBackdrop,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    results: SearchResults,
+    selected: Place?,
+    onPlaceClick: (Place) -> Unit,
+    onCloseSelected: () -> Unit,
+    userPosition: Coordinates?,
     modifier: Modifier = Modifier,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
     val focusManager = LocalFocusManager.current
@@ -88,6 +104,8 @@ internal fun MapSearchSheet(
         focusManager.clearFocus()
         scope.launch { state.animateTo(PvotSheetDetent.Collapsed) }
     }
+    // Registered last, so going back closes the place card before it collapses the sheet.
+    BackHandler(enabled = selected != null, onBack = onCloseSelected)
 
     val open = state.targetDetent != PvotSheetDetent.Collapsed
     PvotPersistentSheet(
@@ -99,25 +117,156 @@ internal fun MapSearchSheet(
     ) {
         SearchRow(
             query = query,
-            onQueryChange = { query = it },
+            onQueryChange = onQueryChange,
             interactionSource = interactionSource,
         )
         // Collapsed, the card ends at the search row; anything under it would peek out.
         AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
             Column(modifier = Modifier.padding(top = PvotSpacing.L)) {
-                if (query.isEmpty()) {
-                    MapPlaces()
-                } else {
-                    Text(
-                        text = stringResource(R.string.map_search_not_ready),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = PvotSpacing.S),
-                    )
+                when {
+                    selected != null -> PlaceCard(selected, userPosition, onCloseSelected)
+                    query.isBlank() -> MapPlaces()
+                    else -> SearchResultList(results, userPosition, onPlaceClick)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun SearchResultList(
+    results: SearchResults,
+    userPosition: Coordinates?,
+    onPlaceClick: (Place) -> Unit,
+) {
+    when (results) {
+        SearchResults.Idle -> Unit
+        SearchResults.Unavailable -> SearchMessage(stringResource(R.string.map_search_unavailable))
+        is SearchResults.Found ->
+            if (results.places.isEmpty()) {
+                SearchMessage(stringResource(R.string.map_search_no_results))
+            } else {
+                LazyColumn(
+                    contentPadding = WindowInsets.ime.asPaddingValues(),
+                    verticalArrangement = Arrangement.spacedBy(PvotSpacing.XS),
+                ) {
+                    items(results.places, key = { it.id }) { place ->
+                        SearchResultRow(place, userPosition, onClick = { onPlaceClick(place) })
+                    }
+                }
+            }
+    }
+}
+
+@Composable
+private fun SearchResultRow(place: Place, userPosition: Coordinates?, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier =
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(PvotSpacing.L))
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(vertical = PvotSpacing.S),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PvotSpacing.M),
+    ) {
+        KindIcon(place)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = place.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = colors.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = place.summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (userPosition != null) {
+            Text(
+                text = distanceText(userPosition.distanceTo(place.coordinates)),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaceCard(place: Place, userPosition: Coordinates?, onClose: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(PvotSpacing.XS)) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = place.name,
+                    style =
+                        MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = colors.onSurface,
+                )
+                place.localName?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+            }
+            Icon(
+                painter = painterResource(R.drawable.ic_close),
+                contentDescription = stringResource(R.string.map_place_close),
+                tint = colors.onSurfaceVariant,
+                modifier =
+                    Modifier.clip(CircleShape)
+                        .clickable(role = Role.Button, onClick = onClose)
+                        .padding(PvotSpacing.XS),
+            )
+        }
+        val distance = userPosition?.let { distanceText(it.distanceTo(place.coordinates)) }
+        Text(
+            text = listOfNotNull(place.summary, distance).joinToString(" · "),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant,
+        )
+        place.address?.let {
+            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
+        }
+    }
+}
+
+@Composable
+private fun KindIcon(place: Place) {
+    Box(
+        modifier =
+            Modifier.size(KindIconSize)
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = FieldFillAlpha * 2),
+                    CircleShape,
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(place.kind.icon),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
+private fun SearchMessage(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = PvotSpacing.S),
+    )
 }
 
 // Its own filled capsule inside the glass bar, the same collapsed and open.
