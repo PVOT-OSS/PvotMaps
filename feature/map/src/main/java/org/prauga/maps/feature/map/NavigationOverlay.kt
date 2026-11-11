@@ -5,8 +5,6 @@
 
 package org.prauga.maps.feature.map
 
-import android.content.res.Resources
-import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,16 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -45,8 +35,6 @@ import com.prauga.pvot.designsystem.effects.PvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import java.text.DateFormat
 import java.util.Date
-import java.util.Locale
-import kotlinx.coroutines.flow.Flow
 import org.prauga.maps.core.model.ManeuverKind
 
 /** The banner with the next turn on top and the trip's progress below, over the map. */
@@ -188,48 +176,3 @@ internal fun KeepScreenOn() {
         onDispose { view.keepScreenOn = false }
     }
 }
-
-/** Says [announcements] aloud with the phone's own text-to-speech, unless [muted]. */
-@Composable
-internal fun SpeakAnnouncements(announcements: Flow<Announcement>, muted: Boolean) {
-    val context = LocalContext.current
-    var ready by remember { mutableStateOf(false) }
-    val tts = remember {
-        TextToSpeech(context.applicationContext) { status ->
-            ready = status == TextToSpeech.SUCCESS
-        }
-    }
-    DisposableEffect(tts) { onDispose { tts.shutdown() } }
-    LaunchedEffect(tts, ready) { if (ready) tts.language = Locale.getDefault() }
-    val resources = LocalResources.current
-    LaunchedEffect(muted) { if (muted) tts.stop() }
-    // Queued, not flushed: a turn announced right after another must not cut it off.
-    LaunchedEffect(announcements, muted, ready) {
-        announcements.collect { announcement ->
-            if (!muted && ready) {
-                tts.speak(announcement.text(resources), TextToSpeech.QUEUE_ADD, null, "pvot-maps")
-            }
-        }
-    }
-}
-
-private fun Announcement.text(resources: Resources): String =
-    when (this) {
-        Announcement.Arrived -> resources.getString(R.string.map_nav_arrived)
-        Announcement.Rerouting -> resources.getString(R.string.map_nav_rerouting)
-        is Announcement.Turn -> {
-            val instruction = maneuver.verbalInstruction ?: maneuver.instruction
-            if (distanceMeters == null) {
-                instruction
-            } else {
-                resources.getString(
-                    R.string.map_nav_in_distance,
-                    formatDistance(resources, distanceMeters),
-                    instruction,
-                )
-            }
-        }
-    }
-
-/** Whether the voice is off, kept across rotation. */
-@Composable internal fun rememberMuted() = rememberSaveable { mutableStateOf(false) }

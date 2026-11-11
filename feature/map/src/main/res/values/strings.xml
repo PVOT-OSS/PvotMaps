@@ -51,4 +51,5 @@
     <string name="map_nav_in_distance">In %1$s, %2$s</string>
     <string name="map_nav_mute">Mute directions</string>
     <string name="map_nav_unmute">Speak directions</string>
+    <string name="map_nav_channel">Directions</string>
 </resources>

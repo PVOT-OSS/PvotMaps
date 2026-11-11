@@ -5,7 +5,11 @@
 
 package org.prauga.maps.feature.map
 
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -136,11 +140,10 @@ private fun MapWithOverlay(
     val recents by searchViewModel.recents.collectAsStateWithLifecycle()
     val plan by routeViewModel.plan.collectAsStateWithLifecycle()
     val navigation by routeViewModel.navigation.collectAsStateWithLifecycle()
-    var muted by rememberMuted()
-    SpeakAnnouncements(routeViewModel.announcements, muted)
-    LaunchedEffect(userPosition, navigation != null) {
-        if (navigation != null) userPosition?.let { routeViewModel.onPosition(it.coordinates) }
-    }
+    val muted by routeViewModel.muted.collectAsStateWithLifecycle()
+    // Without it the guidance notification is hidden; guidance itself runs either way.
+    val notificationPermission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
     LaunchedEffect(navigation?.progress) {
         val progress = navigation?.progress ?: return@LaunchedEffect
         mapState.follow(
@@ -193,7 +196,7 @@ private fun MapWithOverlay(
                 navigation = guided,
                 backdrop = backdrop,
                 muted = muted,
-                onMutedChange = { muted = it },
+                onMutedChange = routeViewModel::setMuted,
                 onEnd = {
                     routeViewModel.stop()
                     mapState.fitBounds(
@@ -279,8 +282,10 @@ private fun MapWithOverlay(
                         routeViewModel.plan(to, userPosition?.coordinates, mode)
                     },
                     onStartNavigation = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
                         routeViewModel.start()
-                        userPosition?.let { routeViewModel.onPosition(it.coordinates) }
                     },
                     onCloseRoute = routeViewModel::clear,
                     userPosition = userPosition?.coordinates,
