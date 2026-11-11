@@ -84,6 +84,10 @@ constructor(
         locationJob?.cancel()
         locationJob = scope.launch { locationProvider.locationUpdates().collect(::onPosition) }
         route.maneuvers.firstOrNull()?.let { say(Announcement.Turn(it, null)) }
+        // Start from where the phone last was, or the route's start it was planned from, so the
+        // camera zooms in at once instead of waiting for a fresh fix, which indoors or standing
+        // still may not come for a while.
+        (locationProvider.lastKnownLocation() ?: route.shape.firstOrNull())?.let(::onPosition)
     }
 
     fun stop() {
