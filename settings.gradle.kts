@@ -38,11 +38,15 @@ include(":core:model")
 
 include(":core:navigation")
 
+include(":core:regions")
+
 include(":core:routing")
 
 include(":core:search")
 
 include(":core:settings")
+
+include(":data:regions")
 
 include(":data:search")
 

@@ -30,6 +30,7 @@ android {
 
 dependencies {
     implementation(project(":feature:map"))
+    implementation(project(":data:regions"))
     implementation(project(":data:search"))
     implementation(project(":engine:valhalla"))
     implementation(libs.pvot.design.system)

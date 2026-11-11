@@ -39,6 +39,7 @@ constructor(@param:ApplicationContext private val context: Context) : RoutingEng
 
     private val mutex = Mutex()
     private var valhalla: Valhalla? = null
+    private var openedModified = 0L
 
     override suspend fun route(from: Coordinates, to: Coordinates, mode: TravelMode): RouteResult =
         withContext(Dispatchers.IO) {
@@ -54,13 +55,18 @@ constructor(@param:ApplicationContext private val context: Context) : RoutingEng
 
     private suspend fun engine(): Valhalla? =
         mutex.withLock {
-            valhalla?.let {
-                return it
-            }
             val dir = File(context.filesDir, RoutingDir)
             val tiles = File(dir, Tiles)
             val buildConfig = File(dir, BuildConfig)
+            // Rebuilt whenever the tiles change, as when a region is downloaded or deleted.
+            val modified = if (tiles.isFile) tiles.lastModified() else 0L
+            valhalla?.let {
+                if (modified == openedModified) return it
+                it.close()
+                valhalla = null
+            }
             if (!tiles.isFile || !buildConfig.isFile) return null
+            openedModified = modified
             val deviceConfig = File(dir, DeviceConfig)
             deviceConfig.writeText(deviceConfig(buildConfig, tiles, dir).toString())
             Valhalla(deviceConfig.path).also { valhalla = it }

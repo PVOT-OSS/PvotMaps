@@ -43,6 +43,7 @@ internal class SqlitePlaceSearch
 constructor(@param:ApplicationContext private val context: Context) : PlaceSearch {
 
     private var database: SQLiteDatabase? = null
+    private var openedModified = 0L
 
     override suspend fun isAvailable(): Boolean =
         withContext(Dispatchers.IO) { databaseFile().isFile }
@@ -73,13 +74,18 @@ constructor(@param:ApplicationContext private val context: Context) : PlaceSearc
             }
         }
 
+    // Reopened whenever the file changes, as when a region is downloaded or deleted.
     @Synchronized
     private fun open(): SQLiteDatabase? {
-        database?.let {
-            return it
-        }
         val file = databaseFile()
+        val modified = if (file.isFile) file.lastModified() else 0L
+        database?.let {
+            if (modified == openedModified) return it
+            it.close()
+            database = null
+        }
         if (!file.isFile) return null
+        openedModified = modified
         return SQLiteDatabase.openDatabase(
                 file.path,
                 null,
