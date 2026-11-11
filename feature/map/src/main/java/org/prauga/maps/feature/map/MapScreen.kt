@@ -139,6 +139,7 @@ private fun MapWithOverlay(
     val results by searchViewModel.results.collectAsStateWithLifecycle()
     val selected by searchViewModel.selected.collectAsStateWithLifecycle()
     val recents by searchViewModel.recents.collectAsStateWithLifecycle()
+    val saved by searchViewModel.saved.collectAsStateWithLifecycle()
     val plan by routeViewModel.plan.collectAsStateWithLifecycle()
     val navigation by routeViewModel.navigation.collectAsStateWithLifecycle()
     val muted by routeViewModel.muted.collectAsStateWithLifecycle()
@@ -297,6 +298,9 @@ private fun MapWithOverlay(
                     },
                     onCloseRoute = routeViewModel::clear,
                     userPosition = userPosition?.coordinates,
+                    saved = saved,
+                    onSave = searchViewModel::save,
+                    onRemoveSaved = searchViewModel::removeSaved,
                 )
             }
     }

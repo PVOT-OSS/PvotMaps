@@ -65,4 +65,7 @@
     <string name="map_offline_failed_network">Couldn’t reach the download server.</string>
     <string name="map_offline_failed_corrupt">The download was damaged. Try again.</string>
     <string name="map_offline_failed_storage">Not enough free space on this phone.</string>
+    <string name="map_place_not_set">Not set</string>
+    <string name="map_place_set_saved">Set as %1$s</string>
+    <string name="map_place_remove_saved">Remove %1$s</string>
 </resources>

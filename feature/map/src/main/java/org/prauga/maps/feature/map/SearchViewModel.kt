@@ -26,6 +26,8 @@ import org.prauga.maps.core.model.PlaceKind
 import org.prauga.maps.core.model.distanceTo
 import org.prauga.maps.core.search.PlaceSearch
 import org.prauga.maps.core.search.RecentPlaces
+import org.prauga.maps.core.search.SavedPlaces
+import org.prauga.maps.core.search.SavedSlot
 import org.prauga.maps.core.search.SearchText
 import org.prauga.maps.engine.maplibre.TappedPlace
 
@@ -47,8 +49,11 @@ private const val TypingPauseMillis = 120L
 @HiltViewModel
 internal class SearchViewModel
 @Inject
-constructor(private val placeSearch: PlaceSearch, private val recentPlaces: RecentPlaces) :
-    ViewModel() {
+constructor(
+    private val placeSearch: PlaceSearch,
+    private val recentPlaces: RecentPlaces,
+    private val savedPlaces: SavedPlaces,
+) : ViewModel() {
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
@@ -74,6 +79,22 @@ constructor(private val placeSearch: PlaceSearch, private val recentPlaces: Rece
             SharingStarted.WhileSubscribed(StopMillis),
             emptyList(),
         )
+
+    /** Home and work, when the user has saved them. */
+    val saved: StateFlow<Map<SavedSlot, Place>> =
+        savedPlaces.places.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(StopMillis),
+            emptyMap(),
+        )
+
+    fun save(slot: SavedSlot, place: Place) {
+        viewModelScope.launch { savedPlaces.save(slot, place) }
+    }
+
+    fun removeSaved(slot: SavedSlot) {
+        viewModelScope.launch { savedPlaces.remove(slot) }
+    }
 
     private val _selected = MutableStateFlow<Place?>(null)
     val selected: StateFlow<Place?> = _selected.asStateFlow()

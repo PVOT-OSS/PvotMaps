@@ -29,17 +29,25 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.prauga.pvot.designsystem.theme.PvotSpacing
+import org.prauga.maps.core.model.Place
+import org.prauga.maps.core.search.SavedSlot
 
 private const val CircleFillAlpha = 0.08f
 
 /**
- * Shortcuts to the user's own places. Saving them comes with on-device storage; for now the circles
- * are stubs that do nothing.
+ * Shortcuts to the user's own places. A saved one opens its place; an empty one, and Add, start a
+ * search, from whose place card it can be saved.
  */
 @Composable
-internal fun MapPlaces(modifier: Modifier = Modifier) {
+internal fun MapPlaces(
+    saved: Map<SavedSlot, Place>,
+    onPlaceClick: (Place) -> Unit,
+    onFind: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(PvotSpacing.M),
@@ -58,9 +66,23 @@ internal fun MapPlaces(modifier: Modifier = Modifier) {
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(PvotSpacing.M)) {
-            PlaceCircle(R.drawable.ic_home, R.string.map_place_home, Modifier.weight(1f))
-            PlaceCircle(R.drawable.ic_briefcase, R.string.map_place_work, Modifier.weight(1f))
-            PlaceCircle(R.drawable.ic_plus, R.string.map_place_add, Modifier.weight(1f))
+            SavedSlot.entries.forEach { slot ->
+                val place = saved[slot]
+                PlaceCircle(
+                    icon = slot.icon,
+                    label = stringResource(slot.label),
+                    detail = place?.name ?: stringResource(R.string.map_place_not_set),
+                    onClick = { if (place != null) onPlaceClick(place) else onFind() },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            PlaceCircle(
+                icon = R.drawable.ic_plus,
+                label = stringResource(R.string.map_place_add),
+                detail = null,
+                onClick = onFind,
+                modifier = Modifier.weight(1f),
+            )
             Box(Modifier.weight(1f))
         }
     }
@@ -69,12 +91,17 @@ internal fun MapPlaces(modifier: Modifier = Modifier) {
 @Composable
 private fun PlaceCircle(
     @DrawableRes icon: Int,
-    @StringRes label: Int,
+    label: String,
+    detail: String?,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(
-        modifier = modifier.clip(MaterialTheme.shapes.medium).clickable(role = Role.Button) {},
+        modifier =
+            modifier
+                .clip(MaterialTheme.shapes.medium)
+                .clickable(role = Role.Button, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(PvotSpacing.S),
     ) {
@@ -92,11 +119,40 @@ private fun PlaceCircle(
                 modifier = Modifier.size(32.dp),
             )
         }
-        Text(
-            text = stringResource(label),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.onSurface,
+        Column(
             modifier = Modifier.padding(bottom = PvotSpacing.XS),
-        )
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurface,
+            )
+            if (detail != null) {
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
+
+@get:DrawableRes
+internal val SavedSlot.icon: Int
+    get() =
+        when (this) {
+            SavedSlot.Home -> R.drawable.ic_home
+            SavedSlot.Work -> R.drawable.ic_briefcase
+        }
+
+@get:StringRes
+internal val SavedSlot.label: Int
+    get() =
+        when (this) {
+            SavedSlot.Home -> R.string.map_place_home
+            SavedSlot.Work -> R.string.map_place_work
+        }

@@ -57,6 +57,7 @@ import com.prauga.pvot.designsystem.components.PvotPersistentSheet
 import com.prauga.pvot.designsystem.components.PvotPersistentSheetState
 import com.prauga.pvot.designsystem.components.PvotSheetDetent
 import com.prauga.pvot.designsystem.components.button.PvotButton
+import com.prauga.pvot.designsystem.components.button.PvotButtonStyle
 import com.prauga.pvot.designsystem.effects.PvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import kotlinx.coroutines.launch
@@ -64,6 +65,7 @@ import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.Place
 import org.prauga.maps.core.model.TravelMode
 import org.prauga.maps.core.model.distanceTo
+import org.prauga.maps.core.search.SavedSlot
 
 private val SearchRowHeight = 44.dp
 private const val FieldFillAlpha = 0.08f
@@ -97,8 +99,12 @@ internal fun MapSearchSheet(
     onStartNavigation: () -> Unit,
     onCloseRoute: () -> Unit,
     userPosition: Coordinates?,
+    saved: Map<SavedSlot, Place>,
+    onSave: (SavedSlot, Place) -> Unit,
+    onRemoveSaved: (SavedSlot) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val searchFocus = remember { FocusRequester() }
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
     val focusManager = LocalFocusManager.current
@@ -128,6 +134,7 @@ internal fun MapSearchSheet(
             query = query,
             onQueryChange = onQueryChange,
             interactionSource = interactionSource,
+            focusRequester = searchFocus,
         )
         // Collapsed, the card ends at the search row; anything under it would peek out.
         AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
@@ -136,8 +143,23 @@ internal fun MapSearchSheet(
                     plan != RoutePlan.None ->
                         RoutePreview(plan, onModeChange, onStartNavigation, onCloseRoute)
                     selected != null ->
-                        PlaceCard(selected, userPosition, onDirections, onCloseSelected)
-                    query.isBlank() -> PlacesAndRecents(recents, userPosition, onPlaceClick)
+                        PlaceCard(
+                            selected,
+                            userPosition,
+                            saved,
+                            onDirections,
+                            onSave,
+                            onRemoveSaved,
+                            onCloseSelected,
+                        )
+                    query.isBlank() ->
+                        PlacesAndRecents(
+                            recents,
+                            saved,
+                            userPosition,
+                            onPlaceClick,
+                            onFind = { searchFocus.requestFocus() },
+                        )
                     else -> SearchResultList(results, userPosition, onPlaceClick)
                 }
             }
@@ -148,11 +170,13 @@ internal fun MapSearchSheet(
 @Composable
 private fun PlacesAndRecents(
     recents: List<Place>,
+    saved: Map<SavedSlot, Place>,
     userPosition: Coordinates?,
     onPlaceClick: (Place) -> Unit,
+    onFind: () -> Unit,
 ) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(PvotSpacing.XS)) {
-        item { MapPlaces() }
+        item { MapPlaces(saved, onPlaceClick, onFind) }
         if (recents.isNotEmpty()) {
             item {
                 Text(
@@ -238,7 +262,10 @@ private fun SearchResultRow(place: Place, userPosition: Coordinates?, onClick: (
 private fun PlaceCard(
     place: Place,
     userPosition: Coordinates?,
+    saved: Map<SavedSlot, Place>,
     onDirections: () -> Unit,
+    onSave: (SavedSlot, Place) -> Unit,
+    onRemoveSaved: (SavedSlot) -> Unit,
     onClose: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -283,6 +310,25 @@ private fun PlaceCard(
             onClick = onDirections,
             modifier = Modifier.fillMaxWidth().padding(top = PvotSpacing.M),
         )
+        Row(horizontalArrangement = Arrangement.spacedBy(PvotSpacing.S)) {
+            SavedSlot.entries.forEach { slot ->
+                val isThis =
+                    saved[slot]?.let {
+                        it.name == place.name && it.coordinates == place.coordinates
+                    } == true
+                PvotButton(
+                    text =
+                        stringResource(
+                            if (isThis) R.string.map_place_remove_saved
+                            else R.string.map_place_set_saved,
+                            stringResource(slot.label),
+                        ),
+                    onClick = { if (isThis) onRemoveSaved(slot) else onSave(slot, place) },
+                    style = PvotButtonStyle.Text,
+                    icon = painterResource(slot.icon),
+                )
+            }
+        }
     }
 }
 
@@ -322,8 +368,8 @@ private fun SearchRow(
     query: String,
     onQueryChange: (String) -> Unit,
     interactionSource: MutableInteractionSource,
+    focusRequester: FocusRequester,
 ) {
-    val focusRequester = remember { FocusRequester() }
     val colors = MaterialTheme.colorScheme
     Row(
         modifier =
