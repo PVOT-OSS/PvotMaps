@@ -124,6 +124,7 @@ private fun MapWithOverlay(
     val query by searchViewModel.query.collectAsStateWithLifecycle()
     val results by searchViewModel.results.collectAsStateWithLifecycle()
     val selected by searchViewModel.selected.collectAsStateWithLifecycle()
+    val recents by searchViewModel.recents.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     StatusBarIcons(overSpace = mapState.showsSpace)
@@ -189,6 +190,7 @@ private fun MapWithOverlay(
                 // Equally good matches rank by closeness to where the map is looking.
                 onQueryChange = { searchViewModel.onQueryChange(it, mapState.camera.target) },
                 results = results,
+                recents = recents,
                 selected = selected,
                 onPlaceClick = { place ->
                     focusManager.clearFocus()

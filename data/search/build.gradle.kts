@@ -12,5 +12,6 @@ android { namespace = "org.prauga.maps.data.search" }
 
 dependencies {
     api(project(":core:search"))
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.core)
 }

@@ -85,6 +85,7 @@ internal fun MapSearchSheet(
     query: String,
     onQueryChange: (String) -> Unit,
     results: SearchResults,
+    recents: List<Place>,
     selected: Place?,
     onPlaceClick: (Place) -> Unit,
     onCloseSelected: () -> Unit,
@@ -125,9 +126,34 @@ internal fun MapSearchSheet(
             Column(modifier = Modifier.padding(top = PvotSpacing.L)) {
                 when {
                     selected != null -> PlaceCard(selected, userPosition, onCloseSelected)
-                    query.isBlank() -> MapPlaces()
+                    query.isBlank() -> PlacesAndRecents(recents, userPosition, onPlaceClick)
                     else -> SearchResultList(results, userPosition, onPlaceClick)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlacesAndRecents(
+    recents: List<Place>,
+    userPosition: Coordinates?,
+    onPlaceClick: (Place) -> Unit,
+) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(PvotSpacing.XS)) {
+        item { MapPlaces() }
+        if (recents.isNotEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.map_recents),
+                    style =
+                        MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = PvotSpacing.L),
+                )
+            }
+            items(recents, key = { it.name to it.coordinates }) { place ->
+                SearchResultRow(place, userPosition, onClick = { onPlaceClick(place) })
             }
         }
     }

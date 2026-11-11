@@ -13,6 +13,7 @@
     <string name="map_search_hint">Search Maps</string>
     <string name="map_search_clear">Clear search</string>
     <string name="map_places">Places</string>
+    <string name="map_recents">Recents</string>
     <string name="map_place_home">Home</string>
     <string name="map_place_work">Work</string>
     <string name="map_place_add">Add</string>

@@ -18,9 +18,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.Place
 import org.prauga.maps.core.search.PlaceSearch
+import org.prauga.maps.core.search.RecentPlaces
 import org.prauga.maps.core.search.SearchText
 
 internal sealed interface SearchResults {
@@ -39,7 +41,9 @@ private const val TypingPauseMillis = 120L
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
-internal class SearchViewModel @Inject constructor(private val placeSearch: PlaceSearch) :
+internal class SearchViewModel
+@Inject
+constructor(private val placeSearch: PlaceSearch, private val recentPlaces: RecentPlaces) :
     ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -59,6 +63,14 @@ internal class SearchViewModel @Inject constructor(private val placeSearch: Plac
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopMillis), SearchResults.Idle)
 
+    /** Places picked lately, newest first. */
+    val recents: StateFlow<List<Place>> =
+        recentPlaces.places.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(StopMillis),
+            emptyList(),
+        )
+
     private val _selected = MutableStateFlow<Place?>(null)
     val selected: StateFlow<Place?> = _selected.asStateFlow()
 
@@ -70,6 +82,7 @@ internal class SearchViewModel @Inject constructor(private val placeSearch: Plac
 
     fun select(place: Place) {
         _selected.value = place
+        viewModelScope.launch { recentPlaces.add(place) }
     }
 
     fun clearSelection() {
