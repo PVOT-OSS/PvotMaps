@@ -19,6 +19,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.Maneuver
+import org.prauga.maps.core.model.ManeuverKind
 import org.prauga.maps.core.model.Route
 import org.prauga.maps.core.model.TravelMode
 import org.prauga.maps.core.routing.RouteResult
@@ -97,6 +98,37 @@ constructor(@param:ApplicationContext private val context: Context) : RoutingEng
             TravelMode.Walk -> "pedestrian"
         }
 
+    // Valhalla's maneuver types, from DirectionsLeg.Maneuver.Type in its proto/directions.proto.
+    private fun maneuverKind(type: Int): ManeuverKind =
+        when (type) {
+            1,
+            2,
+            3 -> ManeuverKind.Depart
+            4,
+            5,
+            6 -> ManeuverKind.Arrive
+            9,
+            23 -> ManeuverKind.SlightRight
+            16,
+            24 -> ManeuverKind.SlightLeft
+            10 -> ManeuverKind.Right
+            15 -> ManeuverKind.Left
+            11 -> ManeuverKind.SharpRight
+            14 -> ManeuverKind.SharpLeft
+            12,
+            13 -> ManeuverKind.UTurn
+            18,
+            20 -> ManeuverKind.RampRight
+            19,
+            21 -> ManeuverKind.RampLeft
+            25,
+            37,
+            38 -> ManeuverKind.Merge
+            26,
+            27 -> ManeuverKind.Roundabout
+            else -> ManeuverKind.Straight
+        }
+
     private fun parse(json: JSONObject, mode: TravelMode): RouteResult {
         val trip = json.optJSONObject("trip") ?: return RouteResult.NotFound(json.toString())
         val legs = trip.getJSONArray("legs")
@@ -117,6 +149,7 @@ constructor(@param:ApplicationContext private val context: Context) : RoutingEng
                         distanceMeters = m.optDouble("length", 0.0) * MetersPerKilometer,
                         durationSeconds = m.optDouble("time", 0.0),
                         shapeIndex = offset + m.optInt("begin_shape_index", 0),
+                        kind = maneuverKind(m.optInt("type")),
                     )
             }
         }

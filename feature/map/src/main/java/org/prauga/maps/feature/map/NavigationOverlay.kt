@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +37,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.prauga.pvot.designsystem.components.PvotGlassCard
 import com.prauga.pvot.designsystem.components.button.PvotButton
 import com.prauga.pvot.designsystem.components.button.PvotIconButton
@@ -44,6 +47,7 @@ import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
+import org.prauga.maps.core.model.ManeuverKind
 
 /** The banner with the next turn on top and the trip's progress below, over the map. */
 @Composable
@@ -68,14 +72,20 @@ internal fun NavigationOverlay(
             contentPadding = PaddingValues(PvotSpacing.L),
         ) {
             when {
-                navigation.rerouting -> Banner(stringResource(R.string.map_nav_rerouting), null)
-                progress?.arrived == true -> Banner(stringResource(R.string.map_nav_arrived), null)
+                navigation.rerouting ->
+                    Banner(stringResource(R.string.map_nav_rerouting), null, null)
+                progress?.arrived == true ->
+                    Banner(stringResource(R.string.map_nav_arrived), null, ManeuverKind.Arrive)
                 progress?.nextManeuver != null ->
                     Banner(
                         progress.nextManeuver?.instruction.orEmpty(),
                         distanceText(progress.distanceToNextManeuverMeters),
+                        progress.nextManeuver?.kind,
                     )
-                else -> Banner(navigation.route.maneuvers.firstOrNull()?.instruction.orEmpty(), null)
+                else -> {
+                    val first = navigation.route.maneuvers.firstOrNull()
+                    Banner(first?.instruction.orEmpty(), null, first?.kind)
+                }
             }
         }
         PvotGlassCard(
@@ -97,20 +107,30 @@ internal fun NavigationOverlay(
                     progress?.remainingDistanceMeters ?: navigation.route.distanceMeters
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.map_nav_arrive, arrivalTime(remainingSeconds)),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                        text =
+                            stringResource(R.string.map_nav_arrive, arrivalTime(remainingSeconds)),
+                        style =
+                            MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
                         color = colors.onSurface,
                     )
                     Text(
-                        text = durationText(remainingSeconds) + " · " + distanceText(remainingMeters),
+                        text =
+                            durationText(remainingSeconds) + " · " + distanceText(remainingMeters),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                     )
                 }
                 PvotIconButton(
-                    icon = painterResource(if (muted) R.drawable.ic_volume_off else R.drawable.ic_volume),
+                    icon =
+                        painterResource(
+                            if (muted) R.drawable.ic_volume_off else R.drawable.ic_volume
+                        ),
                     contentDescription =
-                        stringResource(if (muted) R.string.map_nav_unmute else R.string.map_nav_mute),
+                        stringResource(
+                            if (muted) R.string.map_nav_unmute else R.string.map_nav_mute
+                        ),
                     onClick = { onMutedChange(!muted) },
                 )
                 PvotButton(text = stringResource(R.string.map_nav_end), onClick = onEnd)
@@ -120,22 +140,40 @@ internal fun NavigationOverlay(
 }
 
 @Composable
-private fun Banner(instruction: String, distance: String?) {
-    Column {
-        if (distance != null) {
+private fun Banner(instruction: String, distance: String?, kind: ManeuverKind?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PvotSpacing.L),
+    ) {
+        if (kind != null) {
+            Icon(
+                painter = painterResource(kind.icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(BannerIconSize),
+            )
+        }
+        Column {
+            if (distance != null) {
+                Text(
+                    text = distance,
+                    style =
+                        MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
             Text(
-                text = distance,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+                text = instruction,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
-        Text(
-            text = instruction,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
     }
 }
+
+private val BannerIconSize = 40.dp
 
 private fun arrivalTime(remainingSeconds: Double): String =
     DateFormat.getTimeInstance(DateFormat.SHORT)
@@ -162,9 +200,7 @@ internal fun SpeakAnnouncements(announcements: Flow<Announcement>, muted: Boolea
         }
     }
     DisposableEffect(tts) { onDispose { tts.shutdown() } }
-    LaunchedEffect(tts, ready) {
-        if (ready) tts.language = Locale.getDefault()
-    }
+    LaunchedEffect(tts, ready) { if (ready) tts.language = Locale.getDefault() }
     val resources = LocalResources.current
     LaunchedEffect(muted) { if (muted) tts.stop() }
     // Queued, not flushed: a turn announced right after another must not cut it off.
@@ -175,7 +211,6 @@ internal fun SpeakAnnouncements(announcements: Flow<Announcement>, muted: Boolea
             }
         }
     }
-
 }
 
 private fun Announcement.text(resources: Resources): String =

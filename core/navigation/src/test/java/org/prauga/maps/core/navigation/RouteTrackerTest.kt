@@ -12,6 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.Maneuver
+import org.prauga.maps.core.model.ManeuverKind
 import org.prauga.maps.core.model.Route
 import org.prauga.maps.core.model.TravelMode
 
@@ -28,9 +29,9 @@ class RouteTrackerTest {
             durationSeconds = 220.0,
             maneuvers =
                 listOf(
-                    Maneuver("Drive north.", null, 1100.0, 110.0, 0),
-                    Maneuver("Turn right.", null, 1100.0, 110.0, 1),
-                    Maneuver("You have arrived.", null, 0.0, 0.0, 2),
+                    Maneuver("Drive north.", null, 1100.0, 110.0, 0, ManeuverKind.Depart),
+                    Maneuver("Turn right.", null, 1100.0, 110.0, 1, ManeuverKind.Right),
+                    Maneuver("You have arrived.", null, 0.0, 0.0, 2, ManeuverKind.Arrive),
                 ),
         )
 

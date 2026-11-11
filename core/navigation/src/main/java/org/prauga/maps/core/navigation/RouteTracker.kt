@@ -43,7 +43,8 @@ class RouteTracker(val route: Route) {
     private var segment = 0
 
     init {
-        for (i in 1 until shape.size) cumulative[i] = cumulative[i - 1] + shape[i - 1].distanceTo(shape[i])
+        for (i in 1 until shape.size) cumulative[i] =
+            cumulative[i - 1] + shape[i - 1].distanceTo(shape[i])
         total = cumulative.lastOrNull() ?: 0.0
     }
 
@@ -51,27 +52,46 @@ class RouteTracker(val route: Route) {
         if (shape.size < 2) {
             return progress(shape.firstOrNull() ?: position, 0.0, total, position)
         }
-        var best = nearest(position, (segment - BackSegments).coerceAtLeast(0), (segment + AheadSegments).coerceAtMost(shape.size - 2))
+        var best =
+            nearest(
+                position,
+                (segment - BackSegments).coerceAtLeast(0),
+                (segment + AheadSegments).coerceAtMost(shape.size - 2),
+            )
         // Lost the thread, say after a tunnel or a jump: look along the whole route.
         if (best.distance > offRouteMeters()) {
             val anywhere = nearest(position, 0, shape.size - 2)
             if (anywhere.distance < best.distance) best = anywhere
         }
         segment = best.segment
-        val along = cumulative[best.segment] + best.fraction * (cumulative[best.segment + 1] - cumulative[best.segment])
+        val along =
+            cumulative[best.segment] +
+                best.fraction * (cumulative[best.segment + 1] - cumulative[best.segment])
         return progress(best.point, best.distance, along, position)
     }
 
-    private fun progress(snapped: Coordinates, distance: Double, along: Double, position: Coordinates): RouteProgress {
+    private fun progress(
+        snapped: Coordinates,
+        distance: Double,
+        along: Double,
+        position: Coordinates,
+    ): RouteProgress {
         val remaining = (total - along).coerceAtLeast(0.0)
-        val next = route.maneuvers.firstOrNull { cumulative[it.shapeIndex.coerceIn(0, shape.lastIndex)] > along + PassedMeters }
-        val toNext = next?.let { cumulative[it.shapeIndex.coerceIn(0, shape.lastIndex)] - along } ?: remaining
+        val next =
+            route.maneuvers.firstOrNull {
+                cumulative[it.shapeIndex.coerceIn(0, shape.lastIndex)] > along + PassedMeters
+            }
+        val toNext =
+            next?.let { cumulative[it.shapeIndex.coerceIn(0, shape.lastIndex)] - along }
+                ?: remaining
         return RouteProgress(
             snapped = snapped,
             distanceFromRoute = distance,
             remainingDistanceMeters = remaining,
-            remainingDurationSeconds = if (total > 0) route.durationSeconds * remaining / total else 0.0,
-            nextManeuver = next?.takeIf { it !== route.maneuvers.lastOrNull() || remaining > ArrivalMeters },
+            remainingDurationSeconds =
+                if (total > 0) route.durationSeconds * remaining / total else 0.0,
+            nextManeuver =
+                next?.takeIf { it !== route.maneuvers.lastOrNull() || remaining > ArrivalMeters },
             distanceToNextManeuverMeters = toNext,
             bearing = bearingAt(segment),
             offRoute = distance > offRouteMeters(),
@@ -92,9 +112,15 @@ class RouteTracker(val route: Route) {
         return (Math.toDegrees(atan2(y, x)) + 360) % 360
     }
 
-    private fun offRouteMeters() = if (route.mode == TravelMode.Car) CarOffRouteMeters else SlowOffRouteMeters
+    private fun offRouteMeters() =
+        if (route.mode == TravelMode.Car) CarOffRouteMeters else SlowOffRouteMeters
 
-    private data class Nearest(val segment: Int, val fraction: Double, val point: Coordinates, val distance: Double)
+    private data class Nearest(
+        val segment: Int,
+        val fraction: Double,
+        val point: Coordinates,
+        val distance: Double,
+    )
 
     // Projects onto each segment in a flat, metre-scaled frame around the position, which is
     // accurate enough over the few hundred metres a segment spans.
@@ -112,12 +138,18 @@ class RouteTracker(val route: Route) {
             val dx = bx - ax
             val dy = by - ay
             val lengthSquared = dx * dx + dy * dy
-            val t = if (lengthSquared == 0.0) 0.0 else (-(ax * dx + ay * dy) / lengthSquared).coerceIn(0.0, 1.0)
+            val t =
+                if (lengthSquared == 0.0) 0.0
+                else (-(ax * dx + ay * dy) / lengthSquared).coerceIn(0.0, 1.0)
             val px = ax + t * dx
             val py = ay + t * dy
             val distance = sqrt(px * px + py * py)
             if (distance < best.distance) {
-                val point = Coordinates(a.latitude + t * (b.latitude - a.latitude), a.longitude + t * (b.longitude - a.longitude))
+                val point =
+                    Coordinates(
+                        a.latitude + t * (b.latitude - a.latitude),
+                        a.longitude + t * (b.longitude - a.longitude),
+                    )
                 best = Nearest(i, t, point, distance)
             }
         }

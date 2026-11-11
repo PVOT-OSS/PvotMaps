@@ -10,6 +10,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalResources
 import kotlin.math.roundToInt
+import org.prauga.maps.core.model.ManeuverKind
 import org.prauga.maps.core.model.Place
 import org.prauga.maps.core.model.PlaceKind
 
@@ -58,3 +59,23 @@ internal fun formatDistance(resources: Resources, meters: Double): String =
     } else {
         resources.getString(R.string.map_distance_km, meters / 1000)
     }
+
+@get:DrawableRes
+internal val ManeuverKind.icon: Int
+    get() =
+        when (this) {
+            ManeuverKind.Depart,
+            ManeuverKind.Straight -> R.drawable.ic_turn_straight
+            ManeuverKind.SlightLeft -> R.drawable.ic_turn_slight_left
+            ManeuverKind.SlightRight -> R.drawable.ic_turn_slight_right
+            ManeuverKind.Left -> R.drawable.ic_turn_left
+            ManeuverKind.Right -> R.drawable.ic_turn_right
+            ManeuverKind.SharpLeft -> R.drawable.ic_turn_sharp_left
+            ManeuverKind.SharpRight -> R.drawable.ic_turn_sharp_right
+            ManeuverKind.UTurn -> R.drawable.ic_turn_uturn
+            ManeuverKind.RampLeft -> R.drawable.ic_turn_ramp_left
+            ManeuverKind.RampRight -> R.drawable.ic_turn_ramp_right
+            ManeuverKind.Merge -> R.drawable.ic_turn_merge
+            ManeuverKind.Roundabout -> R.drawable.ic_turn_roundabout
+            ManeuverKind.Arrive -> R.drawable.ic_turn_arrive
+        }

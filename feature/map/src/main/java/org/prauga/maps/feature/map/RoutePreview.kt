@@ -102,7 +102,15 @@ internal fun RoutePreview(
 
 @Composable
 private fun ManeuverRow(maneuver: Maneuver) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PvotSpacing.M),
+    ) {
+        Icon(
+            painter = painterResource(maneuver.kind.icon),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
         Text(
             text = maneuver.instruction,
             style = MaterialTheme.typography.bodyLarge,
@@ -114,7 +122,6 @@ private fun ManeuverRow(maneuver: Maneuver) {
                 text = distanceText(maneuver.distanceMeters),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = PvotSpacing.M),
             )
         }
     }

@@ -31,4 +31,23 @@ data class Maneuver(
     val durationSeconds: Double,
     /** Index into [Route.shape] where this maneuver starts. */
     val shapeIndex: Int,
+    val kind: ManeuverKind,
 )
+
+/** What a [Maneuver] asks the user to do, for its arrow. */
+enum class ManeuverKind {
+    Depart,
+    Straight,
+    SlightLeft,
+    SlightRight,
+    Left,
+    Right,
+    SharpLeft,
+    SharpRight,
+    UTurn,
+    RampLeft,
+    RampRight,
+    Merge,
+    Roundabout,
+    Arrive,
+}
