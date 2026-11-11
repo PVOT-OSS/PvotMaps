@@ -4,7 +4,7 @@
 
 The icons in `feature/map/src/main/res/drawable/` (`ic_search.xml`, `ic_location.xml`,
 `ic_close.xml`, `ic_map.xml`, `ic_steering_wheel.xml`, `ic_home.xml`, `ic_briefcase.xml`,
-`ic_plus.xml`, `ic_chevron_right.xml`, and the place-kind icons `ic_kind_*.xml`) are converted from [Tabler Icons](https://tabler.io/icons), Copyright (c)
+`ic_plus.xml`, `ic_chevron_right.xml`, `ic_volume.xml`, `ic_volume_off.xml`, and the place-kind icons `ic_kind_*.xml`) are converted from [Tabler Icons](https://tabler.io/icons), Copyright (c)
 2020-2026 Paweł Kuna, MIT License. The license text is in `LICENSES/MIT.txt`.
 
 ## OpenFreeMap Liberty map style

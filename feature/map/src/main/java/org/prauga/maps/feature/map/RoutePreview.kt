@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import com.prauga.pvot.designsystem.components.PvotSegmentedControl
+import com.prauga.pvot.designsystem.components.button.PvotButton
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import kotlin.math.roundToInt
 import org.prauga.maps.core.model.Maneuver
@@ -39,6 +40,7 @@ import org.prauga.maps.core.model.TravelMode
 internal fun RoutePreview(
     plan: RoutePlan,
     onModeChange: (TravelMode) -> Unit,
+    onStart: () -> Unit,
     onClose: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -73,7 +75,7 @@ internal fun RoutePreview(
             is RoutePlan.Planning -> RouteMessage(stringResource(R.string.map_route_planning))
             is RoutePlan.Failed -> RouteMessage(stringResource(plan.failure.message))
             is RoutePlan.Ready -> {
-                Row(verticalAlignment = Alignment.Bottom) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = durationText(plan.route.durationSeconds),
                         style = MaterialTheme.typography.headlineMedium,
@@ -83,8 +85,9 @@ internal fun RoutePreview(
                         text = "  " + distanceText(plan.route.distanceMeters),
                         style = MaterialTheme.typography.bodyLarge,
                         color = colors.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = PvotSpacing.XS),
+                        modifier = Modifier.weight(1f),
                     )
+                    PvotButton(text = stringResource(R.string.map_nav_start), onClick = onStart)
                 }
                 LazyColumn(
                     contentPadding = WindowInsets.navigationBars.asPaddingValues(),

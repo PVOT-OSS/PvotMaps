@@ -43,4 +43,12 @@
     <string name="map_route_not_found">No route found to this place.</string>
     <string name="map_duration_min">%1$d min</string>
     <string name="map_duration_h_min">%1$d h %2$d min</string>
+    <string name="map_nav_start">Start</string>
+    <string name="map_nav_end">End</string>
+    <string name="map_nav_arrive">Arrive %1$s</string>
+    <string name="map_nav_arrived">You have arrived.</string>
+    <string name="map_nav_rerouting">Finding a new route…</string>
+    <string name="map_nav_in_distance">In %1$s, %2$s</string>
+    <string name="map_nav_mute">Mute directions</string>
+    <string name="map_nav_unmute">Speak directions</string>
 </resources>

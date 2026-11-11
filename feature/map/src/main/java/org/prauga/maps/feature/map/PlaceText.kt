@@ -5,9 +5,10 @@
 
 package org.prauga.maps.feature.map
 
+import android.content.res.Resources
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalResources
 import kotlin.math.roundToInt
 import org.prauga.maps.core.model.Place
 import org.prauga.maps.core.model.PlaceKind
@@ -45,9 +46,15 @@ internal val PlaceKind.icon: Int
         }
 
 @Composable
-internal fun distanceText(meters: Double): String =
+internal fun distanceText(meters: Double): String = formatDistance(LocalResources.current, meters)
+
+/** "350 m" or "2.4 km", rounded the way people say it. */
+internal fun formatDistance(resources: Resources, meters: Double): String =
     if (meters < 1000) {
-        stringResource(R.string.map_distance_m, ((meters / 10).roundToInt() * 10).coerceAtLeast(10))
+        resources.getString(
+            R.string.map_distance_m,
+            ((meters / 10).roundToInt() * 10).coerceAtLeast(10),
+        )
     } else {
-        stringResource(R.string.map_distance_km, meters / 1000)
+        resources.getString(R.string.map_distance_km, meters / 1000)
     }

@@ -94,6 +94,7 @@ internal fun MapSearchSheet(
     plan: RoutePlan,
     onDirections: () -> Unit,
     onModeChange: (TravelMode) -> Unit,
+    onStartNavigation: () -> Unit,
     onCloseRoute: () -> Unit,
     userPosition: Coordinates?,
     modifier: Modifier = Modifier,
@@ -132,7 +133,8 @@ internal fun MapSearchSheet(
         AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
             Column(modifier = Modifier.padding(top = PvotSpacing.L)) {
                 when {
-                    plan != RoutePlan.None -> RoutePreview(plan, onModeChange, onCloseRoute)
+                    plan != RoutePlan.None ->
+                        RoutePreview(plan, onModeChange, onStartNavigation, onCloseRoute)
                     selected != null ->
                         PlaceCard(selected, userPosition, onDirections, onCloseSelected)
                     query.isBlank() -> PlacesAndRecents(recents, userPosition, onPlaceClick)

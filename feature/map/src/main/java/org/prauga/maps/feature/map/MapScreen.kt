@@ -106,6 +106,10 @@ internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
 private const val TiltDegrees = 60.0
 private const val PlaceZoom = 16.5
 private val RoutePadding = 48.dp
+private const val NavigationZoom = 17.0
+private const val NavigationTilt = 45.0
+// Share of the map kept free above the user while following, so more of the road ahead shows.
+private const val NavigationAhead = 0.4f
 
 @Composable
 private fun MapWithOverlay(
@@ -131,6 +135,22 @@ private fun MapWithOverlay(
     val selected by searchViewModel.selected.collectAsStateWithLifecycle()
     val recents by searchViewModel.recents.collectAsStateWithLifecycle()
     val plan by routeViewModel.plan.collectAsStateWithLifecycle()
+    val navigation by routeViewModel.navigation.collectAsStateWithLifecycle()
+    var muted by rememberMuted()
+    SpeakAnnouncements(routeViewModel.announcements, muted)
+    LaunchedEffect(userPosition, navigation != null) {
+        if (navigation != null) userPosition?.let { routeViewModel.onPosition(it.coordinates) }
+    }
+    LaunchedEffect(navigation?.progress) {
+        val progress = navigation?.progress ?: return@LaunchedEffect
+        mapState.follow(
+            progress.snapped,
+            progress.bearing,
+            NavigationZoom,
+            NavigationTilt,
+            topPadding = (mapHeight * NavigationAhead).roundToInt(),
+        )
+    }
     val density = LocalDensity.current
     val statusBarTop = WindowInsets.statusBars.getTop(density)
     LaunchedEffect(plan) {
@@ -167,78 +187,105 @@ private fun MapWithOverlay(
                             navigationBarBottom
                 ),
         )
-        Box(Modifier.fillMaxSize().statusBarsPadding()) {
-            // The pill rides just above the sheet and steps aside when the sheet fills the screen.
-            AnimatedVisibility(
-                visible =
-                    !sheetState.offset.isNaN() &&
-                        sheetState.targetDetent != PvotSheetDetent.Expanded,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier =
-                    Modifier.align(Alignment.TopEnd)
-                        .offset {
-                            val y = sheetState.offset - toolbarHeight - PvotSpacing.M.toPx()
-                            IntOffset(0, if (y.isNaN()) 0 else y.roundToInt())
-                        }
-                        .padding(end = PvotSpacing.L)
-                        .onSizeChanged { toolbarHeight = it.height },
-            ) {
-                MapToolbar(
-                    backdrop = backdrop,
-                    onMapModes = { choosingMode = true },
-                    tilted = settings.tilted,
-                    onTilt = {
-                        val tilted = !settings.tilted
-                        onTiltedChange(tilted)
-                        mapState.animateTilt(if (tilted) TiltDegrees else 0.0)
-                    },
-                    onMyLocation = {
-                        val target = userPosition?.coordinates ?: return@MapToolbar
-                        mapState.animateTo(
-                            MapCamera(target, maxOf(mapState.camera.zoom, StreetZoom))
-                        )
-                    },
-                )
-            }
-            MapSearchSheet(
-                state = sheetState,
+        navigation?.let { guided ->
+            KeepScreenOn()
+            NavigationOverlay(
+                navigation = guided,
                 backdrop = backdrop,
-                query = query,
-                // Equally good matches rank by closeness to where the map is looking.
-                onQueryChange = { searchViewModel.onQueryChange(it, mapState.camera.target) },
-                results = results,
-                recents = recents,
-                selected = selected,
-                onPlaceClick = { place ->
-                    focusManager.clearFocus()
-                    searchViewModel.select(place)
-                    scope.launch { sheetState.animateTo(PvotSheetDetent.Medium) }
-                    // The half-open sheet covers the bottom of the map; centre the place above it.
-                    mapState.animateTo(
-                        MapCamera(place.coordinates, maxOf(mapState.camera.zoom, PlaceZoom)),
+                muted = muted,
+                onMutedChange = { muted = it },
+                onEnd = {
+                    routeViewModel.stop()
+                    mapState.fitBounds(
+                        guided.route.shape,
+                        padding = with(density) { RoutePadding.roundToPx() },
+                        topPadding = statusBarTop,
                         bottomPadding =
                             (mapHeight * PvotPersistentSheetDefaults.MediumFraction).roundToInt(),
                     )
                 },
-                onCloseSelected = {
-                    routeViewModel.clear()
-                    searchViewModel.clearSelection()
-                },
-                plan = plan,
-                onDirections = {
-                    val to = selected ?: return@MapSearchSheet
-                    routeViewModel.plan(to, userPosition?.coordinates, TravelMode.Car)
-                    scope.launch { sheetState.animateTo(PvotSheetDetent.Medium) }
-                },
-                onModeChange = { mode ->
-                    val to = plan.destination ?: return@MapSearchSheet
-                    routeViewModel.plan(to, userPosition?.coordinates, mode)
-                },
-                onCloseRoute = routeViewModel::clear,
-                userPosition = userPosition?.coordinates,
             )
         }
+        if (navigation == null)
+            Box(Modifier.fillMaxSize().statusBarsPadding()) {
+                // The pill rides just above the sheet and steps aside when the sheet fills the
+                // screen.
+                AnimatedVisibility(
+                    visible =
+                        !sheetState.offset.isNaN() &&
+                            sheetState.targetDetent != PvotSheetDetent.Expanded,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier =
+                        Modifier.align(Alignment.TopEnd)
+                            .offset {
+                                val y = sheetState.offset - toolbarHeight - PvotSpacing.M.toPx()
+                                IntOffset(0, if (y.isNaN()) 0 else y.roundToInt())
+                            }
+                            .padding(end = PvotSpacing.L)
+                            .onSizeChanged { toolbarHeight = it.height },
+                ) {
+                    MapToolbar(
+                        backdrop = backdrop,
+                        onMapModes = { choosingMode = true },
+                        tilted = settings.tilted,
+                        onTilt = {
+                            val tilted = !settings.tilted
+                            onTiltedChange(tilted)
+                            mapState.animateTilt(if (tilted) TiltDegrees else 0.0)
+                        },
+                        onMyLocation = {
+                            val target = userPosition?.coordinates ?: return@MapToolbar
+                            mapState.animateTo(
+                                MapCamera(target, maxOf(mapState.camera.zoom, StreetZoom))
+                            )
+                        },
+                    )
+                }
+                MapSearchSheet(
+                    state = sheetState,
+                    backdrop = backdrop,
+                    query = query,
+                    // Equally good matches rank by closeness to where the map is looking.
+                    onQueryChange = { searchViewModel.onQueryChange(it, mapState.camera.target) },
+                    results = results,
+                    recents = recents,
+                    selected = selected,
+                    onPlaceClick = { place ->
+                        focusManager.clearFocus()
+                        searchViewModel.select(place)
+                        scope.launch { sheetState.animateTo(PvotSheetDetent.Medium) }
+                        // The half-open sheet covers the bottom of the map; centre the place above
+                        // it.
+                        mapState.animateTo(
+                            MapCamera(place.coordinates, maxOf(mapState.camera.zoom, PlaceZoom)),
+                            bottomPadding =
+                                (mapHeight * PvotPersistentSheetDefaults.MediumFraction)
+                                    .roundToInt(),
+                        )
+                    },
+                    onCloseSelected = {
+                        routeViewModel.clear()
+                        searchViewModel.clearSelection()
+                    },
+                    plan = plan,
+                    onDirections = {
+                        val to = selected ?: return@MapSearchSheet
+                        routeViewModel.plan(to, userPosition?.coordinates, TravelMode.Car)
+                        scope.launch { sheetState.animateTo(PvotSheetDetent.Medium) }
+                    },
+                    onModeChange = { mode ->
+                        val to = plan.destination ?: return@MapSearchSheet
+                        routeViewModel.plan(to, userPosition?.coordinates, mode)
+                    },
+                    onStartNavigation = {
+                        routeViewModel.start()
+                        userPosition?.let { routeViewModel.onPosition(it.coordinates) }
+                    },
+                    onCloseRoute = routeViewModel::clear,
+                    userPosition = userPosition?.coordinates,
+                )
+            }
     }
     MapModesSheet(
         visible = choosingMode,
