@@ -37,6 +37,7 @@ include(":core:location")
 include(":core:model")
 
 include(":core:routing")
+
 include(":core:search")
 
 include(":core:settings")
@@ -44,6 +45,8 @@ include(":core:settings")
 include(":data:search")
 
 include(":engine:maplibre")
+
+include(":engine:valhalla")
 
 include(":feature:map")
 

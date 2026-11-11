@@ -18,3 +18,11 @@ Open Styles. The style's code is released under the BSD 3-Clause License and its
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The OpenFreeMap styles repository is
 MIT licensed, Copyright (c) 2023 Zsolt Ero. Map data © OpenStreetMap contributors (ODbL), shown
 in the map's attribution. Natural Earth data is in the public domain.
+
+## Valhalla and valhalla-mobile
+
+Offline routing runs [Valhalla](https://github.com/valhalla/valhalla) (MIT License, Copyright (c)
+2018 Valhalla contributors, Copyright (c) 2015-2017 Mapillary AB, Mapzen) on the device through
+[valhalla-mobile](https://github.com/Rallista/valhalla-mobile) (MIT License, Copyright (c)
+2024 Adventure Consortium Inc (dba Rallista)). The license text is in `LICENSES/MIT.txt`. The
+routing data is built from OpenStreetMap (© OpenStreetMap contributors, ODbL).
