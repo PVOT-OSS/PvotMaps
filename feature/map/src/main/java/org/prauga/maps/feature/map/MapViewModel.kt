@@ -10,17 +10,23 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.prauga.maps.core.location.HeadingProvider
 import org.prauga.maps.core.location.LocationProvider
 import org.prauga.maps.core.model.Coordinates
@@ -28,6 +34,7 @@ import org.prauga.maps.core.model.MapCamera
 import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.MapSettings
 import org.prauga.maps.core.model.UserPosition
+import org.prauga.maps.core.model.distanceTo
 import org.prauga.maps.core.settings.MapSettingsRepository
 
 internal const val StreetZoom = 15.0
@@ -88,23 +95,49 @@ constructor(
         viewModelScope.launch { settingsRepository.setTilted(tilted) }
     }
 
+    private val _recenter = MutableSharedFlow<Coordinates>(extraBufferCapacity = 1)
+
+    /** Where to fly the camera once a better fix than the one the map opened on comes in. */
+    val recenter: SharedFlow<Coordinates> = _recenter.asSharedFlow()
+
+    // Opens the map at once where the phone last knew it was, rather than waiting for a fresh fix
+    // that can take minutes indoors, then moves to the fresh fix if it is somewhere else.
     fun locate() {
         if (_uiState.value is MapUiState.Ready || locateJob?.isActive == true) return
         locateJob =
             viewModelScope.launch {
                 _uiState.value = MapUiState.Locating
-                val location = locationProvider.currentLocation()
-                firstFix = location
-                _uiState.value =
-                    if (location != null) {
-                        MapUiState.Ready(MapCamera(location, StreetZoom))
-                    } else {
-                        MapUiState.LocationUnavailable
+                if (!locationProvider.isEnabled()) {
+                    _uiState.value = MapUiState.LocationUnavailable
+                    return@launch
+                }
+                val last = locationProvider.lastKnownLocation()
+                if (last != null) open(last, StreetZoom)
+                val current =
+                    withTimeoutOrNull(FixTimeoutMillis) { locationProvider.currentLocation() }
+                when {
+                    current != null && last == null -> open(current, StreetZoom)
+                    current != null && last != null ->
+                        if (last.distanceTo(current) > RecenterMeters) _recenter.emit(current)
+                    last == null -> {
+                        open(DefaultCenter, DefaultZoom)
+                        userPosition.filterNotNull().first().let { _recenter.emit(it.coordinates) }
                     }
+                }
             }
+    }
+
+    private fun open(at: Coordinates, zoom: Double) {
+        firstFix = at.takeIf { zoom == StreetZoom }
+        _uiState.value = MapUiState.Ready(MapCamera(at, zoom))
     }
 
     private companion object {
         const val StopTimeoutMillis = 5_000L
+        const val FixTimeoutMillis = 6_000L
+        const val RecenterMeters = 200.0
+        const val DefaultZoom = 11.0
+        // Bengaluru, the only region with search data so far, when there is no fix at all.
+        val DefaultCenter = Coordinates(12.9716, 77.5946)
     }
 }

@@ -29,7 +29,17 @@ constructor(@param:ApplicationContext private val context: Context) : LocationPr
 
     private val locationManager = context.getSystemService(LocationManager::class.java)
 
+    override fun isEnabled(): Boolean = bestProvider() != null
+
     // Callers ask for location permission first; getProviders(true) only lists providers it allows.
+    @SuppressLint("MissingPermission")
+    override fun lastKnownLocation(): Coordinates? =
+        locationManager
+            .getProviders(true)
+            .mapNotNull { locationManager.getLastKnownLocation(it) }
+            .maxByOrNull { it.elapsedRealtimeNanos }
+            ?.let { Coordinates(it.latitude, it.longitude) }
+
     @SuppressLint("MissingPermission")
     override suspend fun currentLocation(): Coordinates? {
         val provider = bestProvider() ?: return null

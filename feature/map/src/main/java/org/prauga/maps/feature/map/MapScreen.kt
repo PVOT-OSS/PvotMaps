@@ -54,6 +54,8 @@ import com.prauga.pvot.designsystem.effects.pvotGlassBackdrop
 import com.prauga.pvot.designsystem.effects.rememberPvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.Flow
+import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapCamera
 import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.MapSettings
@@ -75,6 +77,7 @@ internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
             settings?.let {
                 MapWithOverlay(
                     initialCamera = state.camera,
+                    recenter = viewModel.recenter,
                     userPosition = userPosition,
                     settings = it,
                     onModeChange = viewModel::setMode,
@@ -99,6 +102,7 @@ private const val TiltDegrees = 60.0
 @Composable
 private fun MapWithOverlay(
     initialCamera: MapCamera,
+    recenter: Flow<Coordinates>,
     userPosition: UserPosition?,
     settings: MapSettings,
     onModeChange: (MapMode) -> Unit,
@@ -112,6 +116,9 @@ private fun MapWithOverlay(
     var toolbarHeight by remember { mutableIntStateOf(0) }
     var choosingMode by rememberSaveable { mutableStateOf(false) }
     StatusBarIcons(overSpace = mapState.showsSpace)
+    LaunchedEffect(mapState, recenter) {
+        recenter.collect { mapState.animateTo(MapCamera(it, StreetZoom)) }
+    }
     // Each time the map is created it starts flat; bring back the tilt the user left it at.
     LaunchedEffect(mapState) { if (settings.tilted) mapState.animateTilt(TiltDegrees) }
     Box(Modifier.fillMaxSize()) {
