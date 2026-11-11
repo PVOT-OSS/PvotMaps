@@ -8,6 +8,7 @@ REGIONS = {
     "bengaluru": {
         "source": "https://download.geofabrik.de/asia/india/southern-zone-latest.osm.pbf",
         "bbox": (77.40, 12.80, 77.85, 13.20),
+        "drives_on": "left",
     },
 }
 

@@ -26,6 +26,13 @@ mkdir -p "$data/regions" "$data/search"
 .venv/bin/python -I tools/search/build_index.py bengaluru "$data/regions/bengaluru.osm.pbf" "$data/search/places.db"
 ```
 
+Routing tiles for the same region (Valhalla's tools come with `pyvalhalla`, so put the venv's `bin`
+on `PATH`; `left` because India drives on the left):
+
+```sh
+PATH=$PWD/.venv/bin:$PATH tools/routing/build_tiles.sh "$data/regions/bengaluru.osm.pbf" "$pbf" "$data/routing/bengaluru" left
+```
+
 - `fetch.sh` downloads a Geofabrik extract and checks its MD5 (about 560 MB for India's southern
   zone).
 - `clip.py` cuts the region out (about 3 minutes and 3 GB of memory for Bengaluru) and writes
@@ -33,6 +40,9 @@ mkdir -p "$data/regions" "$data/search"
 - `build_index.py` writes the place search database (about 10 MB and 50,000 places for
   Bengaluru): a `places` table and an FTS4 index over folded names. The app folds what is typed
   the same way (`core/search/.../SearchText.kt`); change both together.
+- `build_tiles.sh` builds Valhalla's routing tiles and packs them into `tiles.tar` (about 84 MB and
+  ten seconds for Bengaluru). The admin database comes from the larger extract; a regional one has
+  no country polygon, so the driving side is set by hand.
 
 ## Trying it on a phone
 
