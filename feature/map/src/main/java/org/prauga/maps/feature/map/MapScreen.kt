@@ -68,6 +68,7 @@ import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapCamera
 import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.MapSettings
+import org.prauga.maps.core.model.Place
 import org.prauga.maps.core.model.TravelMode
 import org.prauga.maps.core.model.UserPosition
 import org.prauga.maps.engine.maplibre.MapSurface
@@ -167,6 +168,17 @@ private fun MapWithOverlay(
     }
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
+    // Opens a place's card in the half-open sheet and centres it in the part of the map above.
+    fun showPlace(place: Place, remember: Boolean) {
+        focusManager.clearFocus()
+        routeViewModel.clear()
+        searchViewModel.select(place, remember)
+        scope.launch { sheetState.animateTo(PvotSheetDetent.Medium) }
+        mapState.animateTo(
+            MapCamera(place.coordinates, maxOf(mapState.camera.zoom, PlaceZoom)),
+            bottomPadding = (mapHeight * PvotPersistentSheetDefaults.MediumFraction).roundToInt(),
+        )
+    }
     StatusBarIcons(overSpace = mapState.showsSpace)
     LaunchedEffect(mapState, recenter) {
         recenter.collect { mapState.animateTo(MapCamera(it, StreetZoom)) }
@@ -179,6 +191,14 @@ private fun MapWithOverlay(
             userPosition = userPosition,
             selectedPlace = selected?.coordinates,
             route = (plan as? RoutePlan.Ready)?.route?.shape,
+            onPlaceTap = { tapped ->
+                if (navigation == null) {
+                    scope.launch { showPlace(searchViewModel.resolve(tapped), true) }
+                }
+            },
+            onLongPress = { at ->
+                if (navigation == null) showPlace(searchViewModel.droppedPin(at), false)
+            },
             mode = settings.mode,
             labels = settings.labels,
             modifier = Modifier.fillMaxSize().pvotGlassBackdrop(backdrop),
@@ -254,19 +274,7 @@ private fun MapWithOverlay(
                     results = results,
                     recents = recents,
                     selected = selected,
-                    onPlaceClick = { place ->
-                        focusManager.clearFocus()
-                        searchViewModel.select(place)
-                        scope.launch { sheetState.animateTo(PvotSheetDetent.Medium) }
-                        // The half-open sheet covers the bottom of the map; centre the place above
-                        // it.
-                        mapState.animateTo(
-                            MapCamera(place.coordinates, maxOf(mapState.camera.zoom, PlaceZoom)),
-                            bottomPadding =
-                                (mapHeight * PvotPersistentSheetDefaults.MediumFraction)
-                                    .roundToInt(),
-                        )
-                    },
+                    onPlaceClick = { place -> showPlace(place, true) },
                     onCloseSelected = {
                         routeViewModel.clear()
                         searchViewModel.clearSelection()
