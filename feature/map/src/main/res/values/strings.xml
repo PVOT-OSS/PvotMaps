@@ -31,4 +31,16 @@
     <string name="map_place_close">Close</string>
     <string name="map_distance_m">%1$d m</string>
     <string name="map_distance_km">%1$.1f km</string>
+    <string name="map_directions">Directions</string>
+    <string name="map_route_to">To %1$s</string>
+    <string name="map_route_close">Close directions</string>
+    <string name="map_route_car">Car</string>
+    <string name="map_route_bike">Bike</string>
+    <string name="map_route_walk">Walk</string>
+    <string name="map_route_planning">Finding a route…</string>
+    <string name="map_route_no_location">Your location isn’t known yet, so there’s nowhere to start from.</string>
+    <string name="map_route_no_data">Routing data for this area isn’t on your phone yet.</string>
+    <string name="map_route_not_found">No route found to this place.</string>
+    <string name="map_duration_min">%1$d min</string>
+    <string name="map_duration_h_min">%1$d h %2$d min</string>
 </resources>

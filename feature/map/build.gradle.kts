@@ -13,6 +13,7 @@ android { namespace = "org.prauga.maps.feature.map" }
 
 dependencies {
     implementation(project(":core:location"))
+    implementation(project(":core:routing"))
     implementation(project(":core:search"))
     implementation(project(":core:settings"))
     implementation(project(":engine:maplibre"))

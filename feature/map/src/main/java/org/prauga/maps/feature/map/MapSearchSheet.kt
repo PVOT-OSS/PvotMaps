@@ -56,11 +56,13 @@ import com.prauga.pvot.designsystem.components.PvotBottomSheetDefaults
 import com.prauga.pvot.designsystem.components.PvotPersistentSheet
 import com.prauga.pvot.designsystem.components.PvotPersistentSheetState
 import com.prauga.pvot.designsystem.components.PvotSheetDetent
+import com.prauga.pvot.designsystem.components.button.PvotButton
 import com.prauga.pvot.designsystem.effects.PvotGlassBackdrop
 import com.prauga.pvot.designsystem.theme.PvotSpacing
 import kotlinx.coroutines.launch
 import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.Place
+import org.prauga.maps.core.model.TravelMode
 import org.prauga.maps.core.model.distanceTo
 
 private val SearchRowHeight = 44.dp
@@ -89,6 +91,10 @@ internal fun MapSearchSheet(
     selected: Place?,
     onPlaceClick: (Place) -> Unit,
     onCloseSelected: () -> Unit,
+    plan: RoutePlan,
+    onDirections: () -> Unit,
+    onModeChange: (TravelMode) -> Unit,
+    onCloseRoute: () -> Unit,
     userPosition: Coordinates?,
     modifier: Modifier = Modifier,
 ) {
@@ -107,6 +113,7 @@ internal fun MapSearchSheet(
     }
     // Registered last, so going back closes the place card before it collapses the sheet.
     BackHandler(enabled = selected != null, onBack = onCloseSelected)
+    BackHandler(enabled = plan != RoutePlan.None, onBack = onCloseRoute)
 
     val open = state.targetDetent != PvotSheetDetent.Collapsed
     PvotPersistentSheet(
@@ -125,7 +132,9 @@ internal fun MapSearchSheet(
         AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
             Column(modifier = Modifier.padding(top = PvotSpacing.L)) {
                 when {
-                    selected != null -> PlaceCard(selected, userPosition, onCloseSelected)
+                    plan != RoutePlan.None -> RoutePreview(plan, onModeChange, onCloseRoute)
+                    selected != null ->
+                        PlaceCard(selected, userPosition, onDirections, onCloseSelected)
                     query.isBlank() -> PlacesAndRecents(recents, userPosition, onPlaceClick)
                     else -> SearchResultList(results, userPosition, onPlaceClick)
                 }
@@ -224,7 +233,12 @@ private fun SearchResultRow(place: Place, userPosition: Coordinates?, onClick: (
 }
 
 @Composable
-private fun PlaceCard(place: Place, userPosition: Coordinates?, onClose: () -> Unit) {
+private fun PlaceCard(
+    place: Place,
+    userPosition: Coordinates?,
+    onDirections: () -> Unit,
+    onClose: () -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(PvotSpacing.XS)) {
         Row(verticalAlignment = Alignment.Top) {
@@ -262,6 +276,11 @@ private fun PlaceCard(place: Place, userPosition: Coordinates?, onClose: () -> U
         place.address?.let {
             Text(text = it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
         }
+        PvotButton(
+            text = stringResource(R.string.map_directions),
+            onClick = onDirections,
+            modifier = Modifier.fillMaxWidth().padding(top = PvotSpacing.M),
+        )
     }
 }
 

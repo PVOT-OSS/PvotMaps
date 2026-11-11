@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -62,6 +64,7 @@ import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapCamera
 import org.prauga.maps.core.model.MapMode
 import org.prauga.maps.core.model.MapSettings
+import org.prauga.maps.core.model.TravelMode
 import org.prauga.maps.core.model.UserPosition
 import org.prauga.maps.engine.maplibre.MapSurface
 import org.prauga.maps.engine.maplibre.rememberMapState
@@ -102,6 +105,7 @@ internal fun MapScreen(viewModel: MapViewModel = hiltViewModel()) {
 
 private const val TiltDegrees = 60.0
 private const val PlaceZoom = 16.5
+private val RoutePadding = 48.dp
 
 @Composable
 private fun MapWithOverlay(
@@ -113,6 +117,7 @@ private fun MapWithOverlay(
     onLabelsChange: (Boolean) -> Unit,
     onTiltedChange: (Boolean) -> Unit,
     searchViewModel: SearchViewModel = hiltViewModel(),
+    routeViewModel: RouteViewModel = hiltViewModel(),
 ) {
     val mapState = rememberMapState(initialCamera)
     val sheetState = rememberPvotPersistentSheetState()
@@ -125,6 +130,18 @@ private fun MapWithOverlay(
     val results by searchViewModel.results.collectAsStateWithLifecycle()
     val selected by searchViewModel.selected.collectAsStateWithLifecycle()
     val recents by searchViewModel.recents.collectAsStateWithLifecycle()
+    val plan by routeViewModel.plan.collectAsStateWithLifecycle()
+    val density = LocalDensity.current
+    val statusBarTop = WindowInsets.statusBars.getTop(density)
+    LaunchedEffect(plan) {
+        val ready = plan as? RoutePlan.Ready ?: return@LaunchedEffect
+        mapState.fitBounds(
+            ready.route.shape,
+            padding = with(density) { RoutePadding.roundToPx() },
+            topPadding = statusBarTop,
+            bottomPadding = (mapHeight * PvotPersistentSheetDefaults.MediumFraction).roundToInt(),
+        )
+    }
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     StatusBarIcons(overSpace = mapState.showsSpace)
@@ -138,6 +155,7 @@ private fun MapWithOverlay(
             state = mapState,
             userPosition = userPosition,
             selectedPlace = selected?.coordinates,
+            route = (plan as? RoutePlan.Ready)?.route?.shape,
             mode = settings.mode,
             labels = settings.labels,
             modifier = Modifier.fillMaxSize().pvotGlassBackdrop(backdrop),
@@ -203,7 +221,21 @@ private fun MapWithOverlay(
                             (mapHeight * PvotPersistentSheetDefaults.MediumFraction).roundToInt(),
                     )
                 },
-                onCloseSelected = searchViewModel::clearSelection,
+                onCloseSelected = {
+                    routeViewModel.clear()
+                    searchViewModel.clearSelection()
+                },
+                plan = plan,
+                onDirections = {
+                    val to = selected ?: return@MapSearchSheet
+                    routeViewModel.plan(to, userPosition?.coordinates, TravelMode.Car)
+                    scope.launch { sheetState.animateTo(PvotSheetDetent.Medium) }
+                },
+                onModeChange = { mode ->
+                    val to = plan.destination ?: return@MapSearchSheet
+                    routeViewModel.plan(to, userPosition?.coordinates, mode)
+                },
+                onCloseRoute = routeViewModel::clear,
                 userPosition = userPosition?.coordinates,
             )
         }
