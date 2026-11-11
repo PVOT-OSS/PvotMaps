@@ -84,6 +84,7 @@ internal fun MapModesSheet(
             // PvotLib has no switch yet; Material's takes its colours from PvotAppTheme.
             Switch(checked = labels, onCheckedChange = null)
         }
+        OfflineRegions()
     }
 }
 

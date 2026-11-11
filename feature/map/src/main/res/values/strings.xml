@@ -52,4 +52,17 @@
     <string name="map_nav_mute">Mute directions</string>
     <string name="map_nav_unmute">Speak directions</string>
     <string name="map_nav_channel">Directions</string>
+    <string name="map_offline_title">Offline data</string>
+    <string name="map_offline_not_set_up">This build has nowhere to download regions from.</string>
+    <string name="map_offline_loading">Looking for regions…</string>
+    <string name="map_offline_size">Search and directions · %1$d MB</string>
+    <string name="map_offline_installed">On this phone · data of %1$s</string>
+    <string name="map_offline_update_available">Newer data available · %1$d MB</string>
+    <string name="map_offline_downloading">Downloading · %1$d%%</string>
+    <string name="map_offline_download">Download</string>
+    <string name="map_offline_update">Update</string>
+    <string name="map_offline_delete">Delete</string>
+    <string name="map_offline_failed_network">Couldn’t reach the download server.</string>
+    <string name="map_offline_failed_corrupt">The download was damaged. Try again.</string>
+    <string name="map_offline_failed_storage">Not enough free space on this phone.</string>
 </resources>
