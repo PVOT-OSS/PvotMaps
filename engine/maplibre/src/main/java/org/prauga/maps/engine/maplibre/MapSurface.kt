@@ -44,6 +44,7 @@ fun MapSurface(
     modifier: Modifier = Modifier,
     userPosition: UserPosition? = null,
     selectedPlace: Coordinates? = null,
+    route: List<Coordinates>? = null,
     mode: MapMode = MapMode.Explore,
     labels: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(),
@@ -68,6 +69,7 @@ fun MapSurface(
                 .getOrElse { Style.Builder().fromUri(MapStyles.BASE) }
         mapView.getMapAsync { map ->
             map.setStyle(builder) { loaded ->
+                loaded.addRouteLayer()
                 loaded.addSelectedPlaceLayer(density.density)
                 loaded.addUserLocationLayer(density.density)
                 style = loaded
@@ -75,6 +77,7 @@ fun MapSurface(
         }
     }
     LaunchedEffect(style, labels) { style?.takeIf { it.isFullyLoaded }?.showLabels(labels) }
+    LaunchedEffect(style, route) { style?.takeIf { it.isFullyLoaded }?.setRoute(route) }
     LaunchedEffect(style, selectedPlace) {
         style?.takeIf { it.isFullyLoaded }?.setSelectedPlace(selectedPlace)
     }

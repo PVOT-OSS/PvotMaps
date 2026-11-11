@@ -18,6 +18,7 @@ import kotlin.math.pow
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.prauga.maps.core.model.Coordinates
 import org.prauga.maps.core.model.MapCamera
@@ -59,6 +60,31 @@ class MapState internal constructor(private var savedCamera: MapCamera) {
                 .padding(0.0, 0.0, 0.0, bottomPadding.toDouble())
                 .build()
         map.animateCamera(CameraUpdateFactory.newCameraPosition(position), AnimationMillis)
+    }
+
+    /**
+     * Frames all of [points], leaving [padding] pixels free on each side, plus [topPadding] at the
+     * top and [bottomPadding] at the bottom for whatever covers the map there (status bar, sheet).
+     */
+    fun fitBounds(
+        points: List<Coordinates>,
+        padding: Int,
+        topPadding: Int = 0,
+        bottomPadding: Int = 0,
+    ) {
+        val map = map ?: return
+        if (points.size < 2) return
+        val bounds = LatLngBounds.fromLatLngs(points.map { LatLng(it.latitude, it.longitude) })
+        map.animateCamera(
+            CameraUpdateFactory.newLatLngBounds(
+                bounds,
+                padding,
+                padding + topPadding,
+                padding,
+                padding + bottomPadding,
+            ),
+            AnimationMillis,
+        )
     }
 
     /** Tilts the map to [degrees] from straight down, keeping where it looks. */
