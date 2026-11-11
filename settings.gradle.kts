@@ -36,6 +36,8 @@ include(":core:location")
 
 include(":core:model")
 
+include(":core:navigation")
+
 include(":core:routing")
 
 include(":core:search")
