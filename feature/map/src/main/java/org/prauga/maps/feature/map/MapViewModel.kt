@@ -5,6 +5,7 @@
 
 package org.prauga.maps.feature.map
 
+import android.hardware.GeomagneticField
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -71,7 +72,7 @@ constructor(
                 },
                 headingProvider.heading().map<Float, Float?> { it }.onStart { emit(null) },
             ) { coordinates, heading ->
-                UserPosition(coordinates, heading)
+                UserPosition(coordinates, heading?.let { trueHeading(it, coordinates) })
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(StopTimeoutMillis), null)
 
@@ -140,4 +141,17 @@ constructor(
         // Bengaluru, the only region with search data so far, when there is no fix at all.
         val DefaultCenter = Coordinates(12.9716, 77.5946)
     }
+}
+
+// The compass points to magnetic north; the map's north is true north. Add the local declination
+// (about -1.5 degrees in Bengaluru, far more elsewhere) so the cone points the right way.
+private fun trueHeading(magnetic: Float, at: Coordinates): Float {
+    val field =
+        GeomagneticField(
+            at.latitude.toFloat(),
+            at.longitude.toFloat(),
+            0f,
+            System.currentTimeMillis(),
+        )
+    return (magnetic + field.declination + 360f) % 360f
 }
