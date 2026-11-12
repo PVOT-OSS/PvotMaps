@@ -187,7 +187,15 @@ constructor(@param:ApplicationContext private val context: Context) : RegionRepo
             synchronized(lock) {
                 val installed = readInstalled()
                 val previous = installed.firstOrNull { it.id == id }
-                val others = installed.filter { it.id != id }
+                // A region the server no longer lists can't be updated; if it is from another
+                // build its tiles would mix with this one's in the shared folder, so it goes.
+                val listed = this.remote.map { it.region.id }.toSet()
+                val orphans =
+                    installed.filter {
+                        it.id != id && it.id !in listed && it.version != remote.region.version
+                    }
+                val others = installed.filter { it.id != id && it !in orphans }
+                orphans.forEach { removeUnused(it.paths, others + listOfNotNull(previous)) }
                 for ((from, to) in moves) {
                     val dest = File(files, to)
                     dest.parentFile?.mkdirs()
