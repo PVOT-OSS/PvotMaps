@@ -7,6 +7,7 @@
 # and routes run across them. The admin database (states, for access rules and driving side) comes
 # from the same extract; a regional extract has no country polygon, so Valhalla can't tell that a
 # left-hand traffic country drives on the left. Pass "left" to mark every admin area in it so.
+# Memory grows with the thread count; set PVOT_MAPS_THREADS to use fewer than every core.
 # Usage: tools/routing/build_tiles.sh <source.osm.pbf> <output dir> [left]
 set -euo pipefail
 
@@ -21,7 +22,7 @@ valhalla_build_config \
     --mjolnir-tile-extract "" \
     --mjolnir-admin "$out/admins.sqlite" \
     --mjolnir-timezone "" \
-    --mjolnir-concurrency "$(nproc)" \
+    --mjolnir-concurrency "${PVOT_MAPS_THREADS:-$(nproc)}" \
     > "$out/valhalla.json"
 
 valhalla_build_admins -c "$out/valhalla.json" "$source_pbf"

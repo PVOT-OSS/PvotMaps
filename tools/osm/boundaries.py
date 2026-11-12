@@ -15,10 +15,34 @@ import json
 import sys
 
 import osmium
-from shapely.geometry import LineString, mapping
-from shapely.ops import polygonize, unary_union
+from shapely.geometry import LineString, Point, Polygon, mapping
+from shapely.ops import linemerge, polygonize, unary_union
 
 SIMPLIFY_DEGREES = 0.002
+
+
+def close_gaps(lines):
+    """Chains an outline's open pieces end to nearest end into one ring and makes it a polygon."""
+    merged = linemerge(unary_union(lines))
+    pieces = list(merged.geoms) if hasattr(merged, "geoms") else [merged]
+    if not pieces:
+        return None
+    ring = list(pieces.pop(0).coords)
+    while pieces:
+        end = ring[-1]
+        best = min(
+            range(len(pieces)),
+            key=lambda i: min(
+                Point(end).distance(Point(pieces[i].coords[0])),
+                Point(end).distance(Point(pieces[i].coords[-1])),
+            ),
+        )
+        piece = list(pieces.pop(best).coords)
+        if Point(end).distance(Point(piece[-1])) < Point(end).distance(Point(piece[0])):
+            piece.reverse()
+        ring.extend(piece)
+    polygon = Polygon(ring + [ring[0]]).buffer(0)
+    return polygon
 
 
 def boundaries(source, country):
@@ -55,8 +79,12 @@ def boundaries(source, country):
                 lines.append(LineString(points))
         area = unary_union(list(polygonize(unary_union(lines))))
         if area.is_empty:
-            print(f"skipping {iso}: its outline doesn't close", file=sys.stderr)
-            continue
+            # The extract cut the outline, as along a disputed border; close the gaps.
+            area = close_gaps(lines)
+            if area is None or area.is_empty:
+                print(f"skipping {iso}: its outline can't be closed", file=sys.stderr)
+                continue
+            print(f"{iso}: closed gaps in its outline cut by the extract's edge", file=sys.stderr)
         area = area.simplify(SIMPLIFY_DEGREES, preserve_topology=True)
         features.append({
             "type": "Feature",
