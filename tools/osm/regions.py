@@ -10,6 +10,7 @@ REGIONS = {
         "source": "https://download.geofabrik.de/asia/india/southern-zone-latest.osm.pbf",
         "bbox": (77.40, 12.80, 77.85, 13.20),
         "drives_on": "left",
+        "language": "kn",
     },
     # Hosur, across the state border from Bengaluru's south-east: its box touches Bengaluru's.
     "hosur": {
@@ -17,12 +18,14 @@ REGIONS = {
         "source": "https://download.geofabrik.de/asia/india/southern-zone-latest.osm.pbf",
         "bbox": (77.70, 12.60, 78.00, 12.85),
         "drives_on": "left",
+        "language": "ta",
     },
     "mysuru": {
         "name": "Mysuru",
         "source": "https://download.geofabrik.de/asia/india/southern-zone-latest.osm.pbf",
         "bbox": (76.55, 12.20, 76.75, 12.40),
         "drives_on": "left",
+        "language": "kn",
     },
 }
 
