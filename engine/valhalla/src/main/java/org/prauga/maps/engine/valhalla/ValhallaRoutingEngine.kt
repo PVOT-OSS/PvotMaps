@@ -25,9 +25,11 @@ import org.prauga.maps.core.model.TravelMode
 import org.prauga.maps.core.routing.RouteResult
 import org.prauga.maps.core.routing.RoutingEngine
 
-// What tools/routing/build_tiles.sh writes, installed per region on the device.
+// Every installed region's tiles share one folder; the region downloads touch the stamp whenever
+// they add or remove tiles. The config is the one tools/routing/build_tiles.sh wrote.
 private const val RoutingDir = "routing"
-private const val Tiles = "tiles.tar"
+private const val Tiles = "tiles"
+private const val Stamp = "tiles.stamp"
 private const val BuildConfig = "valhalla.json"
 private const val DeviceConfig = "valhalla.device.json"
 private const val MetersPerKilometer = 1000.0
@@ -59,26 +61,27 @@ constructor(@param:ApplicationContext private val context: Context) : RoutingEng
             val tiles = File(dir, Tiles)
             val buildConfig = File(dir, BuildConfig)
             // Rebuilt whenever the tiles change, as when a region is downloaded or deleted.
-            val modified = if (tiles.isFile) tiles.lastModified() else 0L
+            val stamp = File(dir, Stamp)
+            val modified = if (stamp.isFile) stamp.lastModified() else 0L
             valhalla?.let {
                 if (modified == openedModified) return it
                 it.close()
                 valhalla = null
             }
-            if (!tiles.isFile || !buildConfig.isFile) return null
+            if (tiles.list().isNullOrEmpty() || !buildConfig.isFile) return null
             openedModified = modified
             val deviceConfig = File(dir, DeviceConfig)
-            deviceConfig.writeText(deviceConfig(buildConfig, tiles, dir).toString())
+            deviceConfig.writeText(deviceConfig(buildConfig, tiles).toString())
             Valhalla(deviceConfig.path).also { valhalla = it }
         }
 
     // The build's config points at the build machine's paths; aim it at the tiles on this device
     // and drop the inputs only the build needed.
-    private fun deviceConfig(buildConfig: File, tiles: File, dir: File): JSONObject {
+    private fun deviceConfig(buildConfig: File, tiles: File): JSONObject {
         val config = JSONObject(buildConfig.readText())
         config.getJSONObject("mjolnir").apply {
-            put("tile_extract", tiles.path)
-            put("tile_dir", File(dir, "tiles").path)
+            put("tile_extract", "")
+            put("tile_dir", tiles.path)
             put("traffic_extract", "")
             put("admin", "")
             put("timezone", "")
