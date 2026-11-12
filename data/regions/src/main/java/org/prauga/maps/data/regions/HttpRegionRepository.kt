@@ -17,8 +17,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,27 +35,44 @@ import org.prauga.maps.core.regions.RegionState
 import org.prauga.maps.core.regions.RegionStatus
 
 private const val ManifestName = "regions.json"
+private const val ManifestVersion = 2
 private const val InstalledName = "regions/installed.json"
 private const val DownloadDir = "regions/download"
+private const val TilesDir = "routing/tiles"
+private const val TilesStamp = "routing/tiles.stamp"
+private const val TilesKind = "tiles"
 private const val TimeoutMillis = 30_000
 private const val BufferBytes = 1 shl 16
+private const val ProgressStepBytes = 1L shl 20
 private const val SpareBytes = 50L shl 20
+
+// What a single-region install of an earlier version left behind.
+private val LegacyFiles =
+    listOf(
+        "search/places.db",
+        "routing/tiles.tar",
+        "routing/valhalla.json",
+        "routing/valhalla.device.json",
+    )
 
 private data class RemoteFile(
     val url: String,
     val target: String,
+    val kind: String,
     val size: Long,
     val sha256: String,
 )
 
 private data class RemoteRegion(val region: Region, val files: List<RemoteFile>)
 
-private data class Installed(val id: String, val version: String, val targets: List<String>)
+/** An installed region and every path, relative to the files dir, it put on the device. */
+private data class Installed(val id: String, val version: String, val paths: Set<String>)
 
 /**
- * Downloads regions from the static site [BuildConfig.REGIONS_URL] points at, checks every file
- * against its SHA-256, and only then moves them in place, so a failed download leaves the region
- * that was installed untouched. One region is installed at a time.
+ * Downloads regions from the static site [BuildConfig.REGIONS_URL] points at. Every file is checked
+ * against its SHA-256 before anything is moved in place, so a failed download leaves the installed
+ * regions untouched. Routing tiles from all regions share one folder; a path is only deleted once
+ * no installed region still lists it, since neighbouring regions share their border tiles.
  */
 @Singleton
 internal class HttpRegionRepository
@@ -63,97 +80,148 @@ internal class HttpRegionRepository
 constructor(@param:ApplicationContext private val context: Context) : RegionRepository {
 
     private val baseUrl = BuildConfig.REGIONS_URL.trimEnd('/')
+    private val files = context.filesDir
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val queue = Channel<String>(Channel.UNLIMITED)
+    private val lock = Any()
     private var remote: List<RemoteRegion> = emptyList()
+    private var unreachable = false
     private val transient = MutableStateFlow<Map<String, RegionStatus>>(emptyMap())
     private val _regions = MutableStateFlow<List<RegionState>>(emptyList())
-    private var job: Job? = null
 
     override val isConfigured: Boolean = baseUrl.isNotEmpty()
 
     override val regions: StateFlow<List<RegionState>> = _regions.asStateFlow()
+
+    init {
+        scope.launch {
+            dropLegacyInstall()
+            for (id in queue) install(id)
+        }
+    }
 
     override suspend fun refresh() {
         if (!isConfigured) return
         withContext(Dispatchers.IO) {
             try {
                 remote = parseManifest(fetchText("$baseUrl/$ManifestName"))
+                unreachable = false
             } catch (_: Exception) {
-                // Without the list, still show the region on the device so it can be deleted.
-                if (remote.isEmpty()) {
-                    transient.value = mapOf("" to RegionStatus.Failed(RegionFailure.Network))
-                }
+                // Without the list, still show the regions on the device so they can be deleted.
+                unreachable = remote.isEmpty()
             }
             publish()
         }
     }
 
     override fun download(id: String) {
-        val target = remote.firstOrNull { it.region.id == id } ?: return
-        if (job?.isActive == true) return
-        job =
-            scope.launch {
-                setStatus(id, RegionStatus.Downloading(0f))
-                val failure = install(target)
-                setStatus(id, failure?.let { RegionStatus.Failed(it) })
+        if (remote.none { it.region.id == id }) return
+        val installed = readInstalled()
+        val outdated =
+            installed.filter { i ->
+                remote.any { it.region.id == i.id && it.region.version != i.version }
             }
+        for (next in listOf(id) + outdated.map { it.id }) {
+            if (transient.value[next] != null) continue
+            setStatus(next, RegionStatus.Queued)
+            queue.trySend(next)
+        }
     }
 
     override fun delete(id: String) {
-        val installed = readInstalled() ?: return
-        if (installed.id != id) return
-        installed.targets.forEach { File(context.filesDir, it).delete() }
-        File(context.filesDir, InstalledName).delete()
+        synchronized(lock) {
+            val installed = readInstalled()
+            val gone = installed.firstOrNull { it.id == id } ?: return
+            val kept = installed - gone
+            removeUnused(gone.paths, kept)
+            writeInstalled(kept)
+            touchTiles()
+        }
         publish()
     }
 
-    private suspend fun install(remote: RemoteRegion): RegionFailure? {
-        val dir =
-            File(context.filesDir, DownloadDir).apply {
+    private suspend fun install(id: String) {
+        val target = remote.firstOrNull { it.region.id == id }
+        val failure = if (target == null) RegionFailure.Network else installOrFail(target)
+        setStatus(id, failure?.let { RegionStatus.Failed(it) })
+    }
+
+    private suspend fun installOrFail(remote: RemoteRegion): RegionFailure? {
+        val id = remote.region.id
+        setStatus(id, RegionStatus.Downloading(0f))
+        val staging =
+            File(files, "$DownloadDir/$id").apply {
                 deleteRecursively()
                 mkdirs()
             }
-        val total = remote.files.sumOf { it.size }
-        if (allocatableBytes() < total + SpareBytes) return RegionFailure.Storage
-        var done = 0L
-        val downloaded = mutableListOf<Pair<File, RemoteFile>>()
         try {
+            val total = remote.files.sumOf { it.size }
+            if (allocatableBytes() < total * 2 + SpareBytes) return RegionFailure.Storage
+            var done = 0L
+            val paths = mutableSetOf<String>()
+            val moves = mutableListOf<Pair<File, String>>()
             for (file in remote.files) {
-                val part = File(dir, file.target.replace('/', '_'))
+                val part = File(staging, file.target.replace('/', '_') + ".part")
                 val sha =
                     fetchFile("$baseUrl/${file.url}", part) { bytes ->
-                        setStatus(
-                            remote.region.id,
-                            RegionStatus.Downloading((done + bytes).toFloat() / total),
-                        )
+                        setStatus(id, RegionStatus.Downloading((done + bytes).toFloat() / total))
                     }
                 if (sha != file.sha256 || part.length() != file.size) return RegionFailure.Corrupt
                 done += file.size
-                downloaded += part to file
+                if (file.kind == TilesKind) {
+                    val unpacked = File(staging, "tiles")
+                    part
+                        .inputStream()
+                        .buffered()
+                        .use { unpackTar(it, unpacked) }
+                        .forEach {
+                            moves += File(unpacked, it) to "$TilesDir/$it"
+                            paths += "$TilesDir/$it"
+                        }
+                    part.delete()
+                } else {
+                    moves += part to file.target
+                    paths += file.target
+                }
             }
+            synchronized(lock) {
+                val installed = readInstalled()
+                val previous = installed.firstOrNull { it.id == id }
+                val others = installed.filter { it.id != id }
+                for ((from, to) in moves) {
+                    val dest = File(files, to)
+                    dest.parentFile?.mkdirs()
+                    if (!from.renameTo(dest)) return RegionFailure.Storage
+                }
+                previous?.let { removeUnused(it.paths - paths, others) }
+                writeInstalled(others + Installed(id, remote.region.version, paths))
+                touchTiles()
+            }
+            return null
         } catch (_: IOException) {
             return RegionFailure.Network
         } finally {
-            if (downloaded.size != remote.files.size) dir.deleteRecursively()
+            staging.deleteRecursively()
         }
-        readInstalled()?.targets?.forEach { File(context.filesDir, it).delete() }
-        for ((part, file) in downloaded) {
-            val target = File(context.filesDir, file.target)
-            target.parentFile?.mkdirs()
-            if (!part.renameTo(target)) return RegionFailure.Storage
-        }
-        dir.deleteRecursively()
-        writeInstalled(
-            Installed(remote.region.id, remote.region.version, remote.files.map { it.target })
-        )
-        return null
+    }
+
+    // Deletes each of [paths] that none of [kept] still uses.
+    private fun removeUnused(paths: Set<String>, kept: List<Installed>) {
+        val used = kept.flatMap { it.paths }.toSet()
+        (paths - used).forEach { File(files, it).delete() }
+    }
+
+    private fun touchTiles() {
+        val stamp = File(files, TilesStamp)
+        stamp.parentFile?.mkdirs()
+        stamp.writeText(System.currentTimeMillis().toString())
     }
 
     // Counts cached data the system would clear to make room, unlike the free space alone.
     private fun allocatableBytes(): Long {
         val storage = context.getSystemService(StorageManager::class.java)
         return try {
-            storage.getAllocatableBytes(storage.getUuidForPath(context.filesDir))
+            storage.getAllocatableBytes(storage.getUuidForPath(files))
         } catch (_: IOException) {
             0L
         }
@@ -161,42 +229,47 @@ constructor(@param:ApplicationContext private val context: Context) : RegionRepo
 
     private fun setStatus(id: String, status: RegionStatus?) {
         transient.value =
-            (transient.value - "" - id).let { if (status == null) it else it + (id to status) }
+            (transient.value - id).let { if (status == null) it else it + (id to status) }
         publish()
     }
 
     private fun publish() {
-        val installed = readInstalled()
+        val installed = readInstalled().associateBy { it.id }
         val states =
             remote.map { (region, _) ->
+                val mine = installed[region.id]
                 val status =
                     transient.value[region.id]
-                        ?: if (installed?.id == region.id) {
-                            RegionStatus.Installed(
-                                installed.version,
-                                installed.version < region.version,
-                            )
+                        ?: if (mine != null) {
+                            RegionStatus.Installed(mine.version, mine.version != region.version)
                         } else {
                             RegionStatus.NotInstalled
                         }
                 RegionState(region, status)
             }
         val offline =
-            installed
-                ?.takeIf { i -> remote.none { it.region.id == i.id } }
-                ?.let {
+            installed.values
+                .filter { i -> remote.none { it.region.id == i.id } }
+                .map {
                     RegionState(
                         Region(it.id, it.id, it.version, 0),
                         RegionStatus.Installed(it.version, false),
                     )
                 }
         val failed =
-            transient.value[""]?.let { listOf(RegionState(Region("", "", "", 0), it)) }.orEmpty()
-        _regions.value = states + listOfNotNull(offline) + failed
+            if (unreachable)
+                listOf(
+                    RegionState(Region("", "", "", 0), RegionStatus.Failed(RegionFailure.Network))
+                )
+            else emptyList()
+        _regions.value = states + offline + failed
     }
 
     private fun parseManifest(text: String): List<RemoteRegion> {
-        val regions = JSONObject(text).getJSONArray("regions")
+        val manifest = JSONObject(text)
+        if (manifest.optInt("version") != ManifestVersion)
+            throw IOException("unsupported regions.json")
+        val regions = manifest.getJSONArray("regions")
         return List(regions.length()) { i ->
             val json = regions.getJSONObject(i)
             val filesJson = json.getJSONArray("files")
@@ -206,6 +279,7 @@ constructor(@param:ApplicationContext private val context: Context) : RegionRepo
                     RemoteFile(
                         f.getString("url"),
                         f.getString("target"),
+                        f.optString("kind", "file"),
                         f.getLong("size"),
                         f.getString("sha256"),
                     )
@@ -268,34 +342,51 @@ constructor(@param:ApplicationContext private val context: Context) : RegionRepo
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private fun readInstalled(): Installed? {
-        val file = File(context.filesDir, InstalledName)
-        if (!file.isFile) return null
+    // A single-region install from before regions could share the phone can't be told apart from
+    // a newer build's border tiles; drop it and let the user download the region again.
+    private fun dropLegacyInstall() {
+        val record = File(files, InstalledName)
+        val legacy =
+            record.isFile &&
+                runCatching { JSONObject(record.readText()).has("id") }.getOrDefault(true)
+        if (!legacy) return
+        LegacyFiles.forEach { File(files, it).delete() }
+        record.delete()
+        publish()
+    }
+
+    private fun readInstalled(): List<Installed> {
+        val file = File(files, InstalledName)
+        if (!file.isFile) return emptyList()
         return runCatching {
-                val json = JSONObject(file.readText())
-                val targets = json.getJSONArray("targets")
-                Installed(
-                    json.getString("id"),
-                    json.getString("version"),
-                    List(targets.length()) { targets.getString(it) },
-                )
+                val regions = JSONObject(file.readText()).getJSONArray("regions")
+                List(regions.length()) { i ->
+                    val json = regions.getJSONObject(i)
+                    val paths = json.getJSONArray("paths")
+                    Installed(
+                        json.getString("id"),
+                        json.getString("version"),
+                        List(paths.length()) { paths.getString(it) }.toSet(),
+                    )
+                }
             }
-            .getOrNull()
+            .getOrDefault(emptyList())
     }
 
-    private fun writeInstalled(installed: Installed) {
-        val file = File(context.filesDir, InstalledName)
+    private fun writeInstalled(installed: List<Installed>) {
+        val file = File(files, InstalledName)
         file.parentFile?.mkdirs()
-        file.writeText(
-            JSONObject()
-                .put("id", installed.id)
-                .put("version", installed.version)
-                .put("targets", JSONArray(installed.targets))
-                .toString()
-        )
-    }
-
-    private companion object {
-        const val ProgressStepBytes = 1L shl 20
+        val regions =
+            JSONArray(
+                installed.map {
+                    JSONObject()
+                        .put("id", it.id)
+                        .put("version", it.version)
+                        .put("paths", JSONArray(it.paths.sorted()))
+                }
+            )
+        val temp = File(file.path + ".tmp")
+        temp.writeText(JSONObject().put("regions", regions).toString())
+        temp.renameTo(file)
     }
 }

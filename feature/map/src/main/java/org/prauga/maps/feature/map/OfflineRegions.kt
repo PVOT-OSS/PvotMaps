@@ -93,6 +93,7 @@ private fun RegionRow(state: RegionState, onDownload: () -> Unit, onDelete: () -
                                     (status.progress * 100).roundToInt(),
                                 )
                             is RegionStatus.Failed -> stringResource(status.reason.message)
+                            RegionStatus.Queued -> stringResource(R.string.map_offline_queued)
                             RegionStatus.NotInstalled ->
                                 stringResource(R.string.map_offline_size, megabytes)
                         },
@@ -114,7 +115,8 @@ private fun RegionRow(state: RegionState, onDownload: () -> Unit, onDelete: () -
                             style = PvotButtonStyle.Text,
                         )
                     }
-                is RegionStatus.Downloading -> Unit
+                is RegionStatus.Downloading,
+                RegionStatus.Queued -> Unit
                 is RegionStatus.Failed,
                 RegionStatus.NotInstalled ->
                     PvotButton(stringResource(R.string.map_offline_download), onClick = onDownload)

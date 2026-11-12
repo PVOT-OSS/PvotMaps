@@ -40,7 +40,7 @@
     <string name="map_route_planning">Finding a route…</string>
     <string name="map_route_no_location">Your location isn’t known yet, so there’s nowhere to start from.</string>
     <string name="map_route_no_data">Routing data for this area isn’t on your phone yet.</string>
-    <string name="map_route_not_found">No route found to this place.</string>
+    <string name="map_route_not_found">No route found. The way there may cross an area that isn’t downloaded.</string>
     <string name="map_duration_min">%1$d min</string>
     <string name="map_duration_h_min">%1$d h %2$d min</string>
     <string name="map_nav_start">Start</string>
@@ -59,6 +59,7 @@
     <string name="map_offline_installed">On this phone · data of %1$s</string>
     <string name="map_offline_update_available">Newer data available · %1$d MB</string>
     <string name="map_offline_downloading">Downloading · %1$d%%</string>
+    <string name="map_offline_queued">Waiting to download…</string>
     <string name="map_offline_download">Download</string>
     <string name="map_offline_update">Update</string>
     <string name="map_offline_delete">Delete</string>

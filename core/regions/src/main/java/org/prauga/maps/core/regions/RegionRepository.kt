@@ -21,6 +21,9 @@ sealed interface RegionStatus {
 
     data class Installed(val version: String, val updateAvailable: Boolean) : RegionStatus
 
+    /** Waiting for the download before it to finish. */
+    data object Queued : RegionStatus
+
     /** [progress] from 0 to 1. */
     data class Downloading(val progress: Float) : RegionStatus
 
@@ -42,6 +45,7 @@ data class RegionState(val region: Region, val status: RegionStatus)
 
 /**
  * Offline data for regions: what can be downloaded, what is on the device, and getting it there.
+ * Any number of regions can be installed; routes run across neighbouring ones.
  */
 interface RegionRepository {
     /** Whether this build knows where to download regions from. */
@@ -53,7 +57,10 @@ interface RegionRepository {
     /** Fetches the list of regions again. */
     suspend fun refresh()
 
-    /** Downloads [id], replacing the region installed now; it carries on in the background. */
+    /**
+     * Downloads [id], or updates it, after any download already under way; it carries on in the
+     * background. Installed regions on older data are updated with it, so all stay on one build.
+     */
     fun download(id: String)
 
     fun delete(id: String)
